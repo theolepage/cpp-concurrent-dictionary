@@ -1,0 +1,2 @@
+
+const char* WordListPath = "@RESOURCES_DIR@" "/words_alpha.txt";

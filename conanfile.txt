@@ -1,0 +1,13 @@
+[requires]
+benchmark/1.5.0
+gtest/1.8.1
+gsl-lite/0.34.0
+spdlog/1.6.0
+tbb/2020.1    # Comment if you do not need TBB
+
+
+[generators]
+cmake_find_package
+
+[options]
+gtest:build_gmock=False
