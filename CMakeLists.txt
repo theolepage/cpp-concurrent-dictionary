@@ -27,6 +27,8 @@ add_library(dictionary
   src/naive_async_dictionary.hpp
   src/naive_dictionary.cpp
   src/naive_dictionary.hpp
+  src/tree_dictionary.cpp
+  src/tree_dictionary.hpp
   src/tools.cpp
   src/tools.hpp
   ${CMAKE_CURRENT_BINARY_DIR}/src/resources.cpp
