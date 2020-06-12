@@ -65,6 +65,3 @@ void naive_dictionary::remove(int document_id)
 
   m_dico.erase(entry);
 }
-
-
-
