@@ -1,4 +1,5 @@
 #include "tree_dictionary.hpp"
+
 #include <algorithm>
 
 #include "IDictionary.hpp"
@@ -31,7 +32,10 @@ void Tree_Dictionary::r_add_word(const char* word, int book, Node& node)
         return node.add_book(book);
     for (auto& child : node.getChildren())
         if (child == *word)
+        {
             r_add_word(word + 1, book, child);
+            break;
+        }
     node.add_child(*word);
     r_add_word(word + 1, book, node.getChildren().back());
 }
@@ -41,19 +45,18 @@ void Tree_Dictionary::_add_word(const char* word, int book)
     r_add_word(word, book, root_);
 }
 
-std::optional<Node::book_set>
-Tree_Dictionary::r_search_word(const char* word, const Node& node) const
+const Node::book_set* Tree_Dictionary::r_search_word(const char* word,
+                                                     const Node& node) const
 {
     if (*word == '\0')
-        return std::make_optional(node.getBooks());
+        return node.getBooks();
     for (auto& child : node.getChildren())
         if (child == *word)
             return r_search_word(word + 1, child);
-    return std::nullopt;
+    return nullptr;
 }
 
-std::optional<Node::book_set>
-Tree_Dictionary::_search_word(const char* word) const
+const Node::book_set* Tree_Dictionary::_search_word(const char* word) const
 {
     return r_search_word(word, root_);
 }
@@ -62,10 +65,15 @@ result_t Tree_Dictionary::search(const char* word) const
 {
     result_t r;
     auto res = _search_word(word);
-    r.m_count = std::min(int(res.has_value() ? res.value().size() : 0), MAX_RESULT_COUNT);
-    auto j = 0;
-    for (auto i = res->begin(); i != res->end() && j < r.m_count; i++)
-        r.m_matched[j++] = (*i).second;
+    if (!res)
+        r.m_count = 0;
+    else
+    {
+        r.m_count = std::min(int(res->size()), MAX_RESULT_COUNT);
+        auto j = 0;
+        for (auto i = res->begin(); i != res->end() && j < r.m_count; i++)
+            r.m_matched[j++] = (*i).second;
+    }
     return r;
 }
 void Tree_Dictionary::insert(int document_id, gsl::span<const char*> text)
