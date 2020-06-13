@@ -26,23 +26,29 @@ void Tree_Dictionary::_init(const dictionary_t& d)
             _add_word(word, book);
 }
 
-void Tree_Dictionary::r_add_word(const char* word, int book, Node& node)
-{
-    if (*word == '\0')
-        return node.add_book(book);
-    for (auto& child : node.getChildren())
-        if (child == *word)
-        {
-            r_add_word(word + 1, book, child);
-            return;
-        }
-    node.add_child(*word);
-    r_add_word(word + 1, book, node.getChildren().back());
-}
-
 void Tree_Dictionary::_add_word(const char* word, int book)
 {
-    r_add_word(word, book, root_);
+    Node* cur = &root_;
+    while (*word != '\0')
+    {
+        auto flag = false;
+        for (Node& child : cur->getChildren())
+            if (child == *word)
+            {
+                cur = &child;
+                word++;
+                flag = true;
+                break;
+            }
+        if (!flag)
+        {
+            cur->add_child(*word);
+            cur = &(cur->getChildren().back());
+            word++;
+        }
+    }
+
+    cur->add_book(book);
 }
 
 const Node::book_set* Tree_Dictionary::_search_word(const char* word) const

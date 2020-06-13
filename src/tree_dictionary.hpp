@@ -95,7 +95,6 @@ private:
     void _init(const dictionary_t& d);
     const Node::book_set* _search_word(const char* word) const;
     void _add_word(const char* word, int book);
-    void r_add_word(const char* word, int book, Node& node);
     void _remove(int document_id, Node& node);
 
     Node root_;
