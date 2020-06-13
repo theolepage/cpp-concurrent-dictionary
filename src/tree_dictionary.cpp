@@ -45,20 +45,25 @@ void Tree_Dictionary::_add_word(const char* word, int book)
     r_add_word(word, book, root_);
 }
 
-const Node::book_set* Tree_Dictionary::r_search_word(const char* word,
-                                                     const Node& node) const
-{
-    if (*word == '\0')
-        return node.getBooks();
-    for (auto& child : node.getChildren())
-        if (child == *word)
-            return r_search_word(word + 1, child);
-    return nullptr;
-}
-
 const Node::book_set* Tree_Dictionary::_search_word(const char* word) const
 {
-    return r_search_word(word, root_);
+    auto cur = root_;
+    while (*word != '\0')
+    {
+        auto flag = false;
+        for (auto& child : cur.getChildren())
+            if (child == *word)
+            {
+                cur = child;
+                word++;
+                flag = true;
+                break;
+            }
+        if (!flag)
+            return nullptr;
+    }
+
+    return cur.getBooks();
 }
 
 result_t Tree_Dictionary::search(const char* word) const
