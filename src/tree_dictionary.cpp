@@ -64,7 +64,7 @@ result_t Tree_Dictionary::search(const char* word) const
     auto res = _search_word(word);
     r.m_count = std::min(int(res.has_value() ? res.value().size() : 0), MAX_RESULT_COUNT);
     auto j = 0;
-    for (auto i = res->begin(); i != res->end(); i++)
+    for (auto i = res->begin(); i != res->end() && j < MAX_RESULT_COUNT; i++)
         r.m_matched[j++] = (*i).second;
     return r;
 }
