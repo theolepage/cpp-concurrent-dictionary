@@ -34,7 +34,7 @@ void Tree_Dictionary::r_add_word(const char* word, int book, Node& node)
         if (child == *word)
         {
             r_add_word(word + 1, book, child);
-            break;
+            return;
         }
     node.add_child(*word);
     r_add_word(word + 1, book, node.getChildren().back());
@@ -47,11 +47,11 @@ void Tree_Dictionary::_add_word(const char* word, int book)
 
 const Node::book_set* Tree_Dictionary::_search_word(const char* word) const
 {
-    auto cur = root_;
+    Node cur = root_;
     while (*word != '\0')
     {
         auto flag = false;
-        for (auto& child : cur.getChildren())
+        for (const auto& child : cur.getChildren())
             if (child == *word)
             {
                 cur = child;
