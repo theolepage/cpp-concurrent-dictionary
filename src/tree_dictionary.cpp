@@ -63,7 +63,9 @@ result_t Tree_Dictionary::search(const char* word) const
     result_t r;
     auto res = _search_word(word);
     r.m_count = std::min(int(res.has_value() ? res.value().size() : 0), MAX_RESULT_COUNT);
-    std::copy_n(res->begin(), r.m_count, r.m_matched);
+    auto j = 0;
+    for (auto i = res->begin(); i != res->end(); i++)
+        r.m_matched[j++] = (*i).second;
     return r;
 }
 void Tree_Dictionary::insert(int document_id, gsl::span<const char*> text)

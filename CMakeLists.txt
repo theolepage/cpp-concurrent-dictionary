@@ -9,6 +9,7 @@ find_package(GTest 1.8.1 REQUIRED)
 find_package(benchmark 1.5.0 REQUIRED)
 find_package(gsl-lite 0.34.0 REQUIRED)
 find_package(spdlog 1.6.0 REQUIRED)
+find_package(TBB 2020.1 REQUIRED)
 
 
 set(CMAKE_CXX_STANDARD 17)
@@ -35,7 +36,7 @@ add_library(dictionary
   )
 
 
-target_link_libraries(dictionary PUBLIC gsl-lite::gsl-lite spdlog::spdlog)
+target_link_libraries(dictionary PUBLIC gsl-lite::gsl-lite spdlog::spdlog TBB::TBB)
 
 add_executable(tests src/tests.cpp)
 target_link_libraries(tests PRIVATE dictionary GTest::GTest)

@@ -20,12 +20,6 @@ public:
         , books_(book_set())
     {}
 
-    Node(char letter, int book_size)
-        : letter_(letter)
-        , children_(std::vector<Node>())
-        , books_(book_set(book_size))
-    {}
-
     void add_child(char letter)
     {
         children_.emplace_back(Node(letter));
@@ -34,7 +28,7 @@ public:
     void add_book(int book)
     {
         is_leaf = true;
-        books_.insert(book, book);
+        books_.insert(std::make_pair(book, book));
     }
 
     void remove_book(int book)
