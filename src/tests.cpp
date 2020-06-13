@@ -158,5 +158,3 @@ TEST(Dictionary, AsyncConsistency)
   auto r2 = scn.execute(dic);
   ASSERT_EQ(r1, r2);
 }
-
-

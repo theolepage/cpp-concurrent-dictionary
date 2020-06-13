@@ -51,7 +51,7 @@ void Tree_Dictionary::_add_word(const char* word, int book)
     cur->add_book(book);
 }
 
-const Node::book_set* Tree_Dictionary::_search_word(const char* word) const
+void Tree_Dictionary::_search_word(const char* word, result_t& r) const
 {
     const Node* cur = &root_;
     while (*word != '\0')
@@ -66,25 +66,21 @@ const Node::book_set* Tree_Dictionary::_search_word(const char* word) const
                 break;
             }
         if (!flag)
-            return nullptr;
+            r.m_count = 0;
     }
 
-    return cur->getBooks();
+    std::shared_lock lock(cur->m);
+    auto res = cur->getBooks();
+    r.m_count = std::min(int(res->size()), MAX_RESULT_COUNT);
+    auto j = 0;
+    for (auto i = res->begin(); i != res->end() && j < r.m_count; i++)
+        r.m_matched[j++] = (*i);
 }
 
 result_t Tree_Dictionary::search(const char* word) const
 {
     result_t r;
-    auto res = _search_word(word);
-    if (!res)
-        r.m_count = 0;
-    else
-    {
-        r.m_count = std::min(int(res->size()), MAX_RESULT_COUNT);
-        auto j = 0;
-        for (auto i = res->begin(); i != res->end() && j < r.m_count; i++)
-            r.m_matched[j++] = (*i).second;
-    }
+    _search_word(word, r);
     return r;
 }
 void Tree_Dictionary::insert(int document_id, gsl::span<const char*> text)

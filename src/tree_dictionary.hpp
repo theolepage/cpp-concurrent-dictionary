@@ -2,19 +2,17 @@
 
 #include <utility>
 #include <vector>
+#include <shared_mutex>
 
 #include "IDictionary.hpp"
-#include "tbb/concurrent_hash_map.h"
-#include "tbb/tbb.h"
+#include <unordered_set>
 
 class Node
 {
 public:
-    using book_set =
-        tbb::concurrent_hash_map<int, int, tbb::tbb_hash_compare<int>,
-                                 tbb::tbb_allocator<std::pair<int, int>>>;
+    using book_set = std::unordered_set<int>;
 
-    Node(char letter)
+    explicit Node(char letter)
         : letter_(letter)
         , children_(std::vector<Node>())
         , books_(book_set())
@@ -22,17 +20,19 @@ public:
 
     void add_child(char letter)
     {
-        children_.emplace_back(Node(letter));
+        children_.push_back(Node(letter));
     }
 
     void add_book(int book)
     {
+        std::unique_lock l(m);
         is_leaf = true;
-        books_.insert(std::make_pair(book, book));
+        books_.insert(book);
     }
 
     void remove_book(int book)
     {
+        std::unique_lock l(m);
         if (is_leaf)
             books_.erase(book);
     }
@@ -67,6 +67,7 @@ public:
         return is_leaf;
     }
 
+    mutable std::shared_mutex m;
 private:
     char letter_;
     std::vector<Node> children_;
@@ -93,7 +94,7 @@ public:
 
 private:
     void _init(const dictionary_t& d);
-    const Node::book_set* _search_word(const char* word) const;
+    void _search_word(const char* word, result_t& r) const;
     void _add_word(const char* word, int book);
     void _remove(int document_id, Node& node);
 
