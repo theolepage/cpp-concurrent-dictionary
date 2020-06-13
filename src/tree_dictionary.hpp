@@ -1,16 +1,29 @@
 #pragma once
 
+#include <utility>
 #include <vector>
 
 #include "IDictionary.hpp"
+#include "tbb/concurrent_hash_map.h"
+#include "tbb/tbb.h"
 
 class Node
 {
 public:
+    using book_set =
+        tbb::concurrent_hash_map<int, int, tbb::tbb_hash_compare<int>,
+                                 tbb::tbb_allocator<std::pair<int, int>>>;
+
     Node(char letter)
         : letter_(letter)
         , children_(std::vector<Node>())
-        , books_(std::vector<int>())
+        , books_(book_set())
+    {}
+
+    Node(char letter, int book_size)
+        : letter_(letter)
+        , children_(std::vector<Node>())
+        , books_(book_set(book_size))
     {}
 
     void add_child(char letter)
@@ -21,15 +34,13 @@ public:
     void add_book(int book)
     {
         is_leaf = true;
-        books_.emplace_back(book);
+        books_.insert(book, book);
     }
 
     void remove_book(int book)
     {
         if (is_leaf)
-            for (auto i = books_.begin(); i != books_.end(); i++)
-                if (*i == book)
-                    books_.erase(i);
+            books_.erase(book);
     }
 
     bool operator==(char l) const
@@ -47,12 +58,12 @@ public:
         return children_;
     }
 
-    const std::vector<int>& getBooks()
+    const book_set& getBooks()
     {
         return books_;
     }
 
-    const std::vector<int>& getBooks() const
+    const book_set& getBooks() const
     {
         return books_;
     }
@@ -65,7 +76,7 @@ public:
 private:
     char letter_;
     std::vector<Node> children_;
-    std::vector<int> books_;
+    book_set books_;
     bool is_leaf = false;
 };
 
@@ -88,9 +99,9 @@ public:
 
 private:
     void _init(const dictionary_t& d);
-    std::optional<std::vector<int>> _search_word(const char* word) const;
-    std::optional<std::vector<int>> r_search_word(const char* word,
-                                                  const Node& node) const;
+    std::optional<Node::book_set> _search_word(const char* word) const;
+    std::optional<Node::book_set> r_search_word(const char* word,
+                                                const Node& node) const;
     void _add_word(const char* word, int book);
     void r_add_word(const char* word, int book, Node& node);
     void _remove(int document_id, Node& node);

@@ -41,7 +41,7 @@ void Tree_Dictionary::_add_word(const char* word, int book)
     r_add_word(word, book, root_);
 }
 
-std::optional<std::vector<int>>
+std::optional<Node::book_set>
 Tree_Dictionary::r_search_word(const char* word, const Node& node) const
 {
     if (*word == '\0')
@@ -52,7 +52,7 @@ Tree_Dictionary::r_search_word(const char* word, const Node& node) const
     return std::nullopt;
 }
 
-std::optional<std::vector<int>>
+std::optional<Node::book_set>
 Tree_Dictionary::_search_word(const char* word) const
 {
     return r_search_word(word, root_);
