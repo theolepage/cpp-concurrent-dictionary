@@ -13,7 +13,8 @@ find_package(spdlog 1.6.0 REQUIRED)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=thread")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=address")
+#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=thread")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -march=native")
 
 set(RESOURCES_DIR ${CMAKE_SOURCE_DIR})
@@ -27,8 +28,11 @@ add_library(dictionary
   src/naive_async_dictionary.hpp
   src/naive_dictionary.cpp
   src/naive_dictionary.hpp
+  src/hashmap_dictionary.cpp
+  src/hashmap_dictionary.hpp
   src/tools.cpp
   src/tools.hpp
+  src/utils/hashmap.hpp
   ${CMAKE_CURRENT_BINARY_DIR}/src/resources.cpp
   )
 
