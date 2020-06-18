@@ -24,6 +24,7 @@ void Tree_Dictionary::_init(const dictionary_t& d)
     for (const auto& [book, words] : d)
         for (const auto& word : words)
             _add_word(word, book);
+    root_._init_leafs(leafs);
 }
 
 void Tree_Dictionary::_add_word(const char* word, int book)
@@ -31,21 +32,10 @@ void Tree_Dictionary::_add_word(const char* word, int book)
     Node* cur = &root_;
     while (*word != '\0')
     {
-        auto flag = false;
-        for (Node& child : cur->getChildren())
-            if (child == *word)
-            {
-                cur = &child;
-                word++;
-                flag = true;
-                break;
-            }
-        if (!flag)
-        {
+        if ((*cur)[*word] == nullptr)
             cur->add_child(*word);
-            cur = &(cur->getChildren().back());
-            word++;
-        }
+        cur = (*cur)[*word];
+        ++word;
     }
 
     cur->add_book(book);
@@ -56,25 +46,16 @@ void Tree_Dictionary::_search_word(const char* word, result_t& r) const
     const Node* cur = &root_;
     while (*word != '\0')
     {
-        auto flag = false;
-        for (const Node& child : cur->getChildren())
-            if (child == *word)
-            {
-                cur = &child;
-                word++;
-                flag = true;
-                break;
-            }
-        if (!flag)
+        cur = (*cur)[*word];
+        ++word;
+        if (cur == nullptr)
+        {
             r.m_count = 0;
+            return;
+        }
     }
 
-    std::shared_lock lock(cur->m);
-    auto res = cur->getBooks();
-    r.m_count = std::min(int(res->size()), MAX_RESULT_COUNT);
-    auto j = 0;
-    for (auto i = res->begin(); i != res->end() && j < r.m_count; i++)
-        r.m_matched[j++] = (*i);
+    cur->read_books(r);
 }
 
 result_t Tree_Dictionary::search(const char* word) const
@@ -83,20 +64,20 @@ result_t Tree_Dictionary::search(const char* word) const
     _search_word(word, r);
     return r;
 }
+
 void Tree_Dictionary::insert(int document_id, gsl::span<const char*> text)
 {
     for (auto word : text)
         _add_word(word, document_id);
 }
 
-void Tree_Dictionary::_remove(int document_id, Node& node)
+void Tree_Dictionary::_remove(int document_id)
 {
-    node.remove_book(document_id);
-    for (auto& child : node.getChildren())
-        _remove(document_id, child);
+    for (Node* leaf : leafs)
+        leaf->remove_book(document_id);
 }
 
 void Tree_Dictionary::remove(int document_id)
 {
-    _remove(document_id, root_);
+    _remove(document_id);
 }
