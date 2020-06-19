@@ -54,16 +54,9 @@ public:
             children_[i] = nullptr;
     }
 
-    ~Node()
-    {
-        for (int i = 0; i < NB_LETTERS; ++i)
-            if (children_[i] != nullptr)
-                delete children_[i];
-    }
-
     void add_child(char letter)
     {
-        children_[letter - 'a'] = new Node(letter);
+        children_[letter - 'a'] = std::make_unique<Node>(letter);
     }
 
     void add_book(int book)
@@ -79,8 +72,7 @@ public:
 
     void remove_book(int book)
     {
-        if (is_leaf)
-            leaf->erase(book);
+        leaf->erase(book);
     }
 
     bool empty(void) const
@@ -90,12 +82,12 @@ public:
 
     const Node* operator[](char c) const
     {
-        return children_[c - 'a'];
+        return children_[c - 'a'].get();
     }
 
     Node* operator[](char c)
     {
-        return children_[c - 'a'];
+        return children_[c - 'a'].get();
     }
 
     bool operator==(char l) const
@@ -133,9 +125,9 @@ public:
 
 private:
 
-    std::shared_ptr<Leaf> leaf;
+    std::unique_ptr<Leaf> leaf;
     char letter_;
-    Node* children_[NB_LETTERS];
+    std::unique_ptr<Node> children_[NB_LETTERS];
     bool is_leaf = false;
 };
 
