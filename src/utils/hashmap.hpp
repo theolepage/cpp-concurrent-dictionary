@@ -1,6 +1,5 @@
 #pragma once
 
-#include <vector>
 #include <memory>
 #include <optional>
 #include <functional>
@@ -55,44 +54,43 @@ template <typename K, typename V>
 class hashmap
 {
 public:
-    hashmap(unsigned long size)
-        : data_(size)
-    {}
-
-    hashmap()
-        : hashmap(64)
-    {}
-
-    std::optional<V> find(const K& key) const
+    std::shared_ptr<hashmap_node<K, V>> find(const K& key) const
     {
         std::shared_ptr<hashmap_node<K, V>> node = data_.at(hash(key));
         while (node != nullptr)
         {
             if (node->get_key() == key)
-                return node->get_value();
+                return node;
             node = node->get_next();
         }
-        return std::nullopt;
+        return nullptr;
     }
 
     V& operator[](const K& key)
     {
-        std::shared_ptr<hashmap_node<K, V>> node = data_.at(hash(key));
+        const unsigned long index = hash(key);
+        std::shared_ptr<hashmap_node<K, V>> prev_node = nullptr;
+        std::shared_ptr<hashmap_node<K, V>> node = data_.at(index);
         while (node != nullptr)
         {
             if (node->get_key() == key)
                 return node->get_value();
+            prev_node = node;
             node = node->get_next();
         }
 
-        // Implicit insertion
-        auto new_node = insert(key, V());
+        // Create new node
+        const auto new_node = std::make_shared<hashmap_node<K, V>>(key, V());
+        if (prev_node == nullptr)
+            data_[index] = new_node;
+        else
+            prev_node->set_next(new_node);
         return new_node->get_value();
     }
 
-    std::shared_ptr<hashmap_node<K, V>> insert(const K& key, V&& value)
+    void insert(const K& key, const V& value)
     {
-        unsigned long index = hash(key);
+        const unsigned long index = hash(key);
         std::shared_ptr<hashmap_node<K, V>> prev_node = nullptr;
         std::shared_ptr<hashmap_node<K, V>> node = data_.at(index);
 
@@ -104,20 +102,19 @@ public:
         }
 
         if (node != nullptr)
-            return nullptr;
+            return;
 
         // Create new node
-        auto new_node = std::make_shared<hashmap_node<K, V>>(key, value);
+        const auto new_node = std::make_shared<hashmap_node<K, V>>(key, value);
         if (prev_node == nullptr)
             data_[index] = new_node;
         else
             prev_node->set_next(new_node);
-        return new_node;
     }
 
     void erase(const K& key)
     {
-        unsigned long index = hash(key);
+        const unsigned long index = hash(key);
         std::shared_ptr<hashmap_node<K, V>> prev_node = nullptr;
         std::shared_ptr<hashmap_node<K, V>> node = data_.at(index);
 
@@ -137,10 +134,10 @@ public:
             prev_node->set_next(node->get_next());
     }
 private:
-    unsigned long hash(const K& key) const
+    inline unsigned long hash(const K& key) const
     {
         return std::hash<K>{}(key) % data_.size();
     }
 
-    std::vector<std::shared_ptr<hashmap_node<K, V>>> data_;
+    std::array<std::shared_ptr<hashmap_node<K, V>>, 4096> data_;
 };

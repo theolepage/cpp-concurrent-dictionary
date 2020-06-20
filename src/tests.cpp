@@ -15,14 +15,14 @@ TEST(HashMap, Simple)
   map.insert(1, "nicolas");
   map.insert(2, "lukas");
   map.insert(3, "theo");
-  map.insert(3, "pierrick");
+  map.insert(4, "pierrick");
 
   auto tmp = map.find(2);
-  ASSERT_EQ("lukas", tmp.value());
+  ASSERT_EQ("lukas", tmp->get_value());
 
   map.erase(2);
   tmp = map.find(2);
-  ASSERT_FALSE(tmp.has_value());
+  ASSERT_EQ(nullptr, tmp);
 }
 
 // TODO
