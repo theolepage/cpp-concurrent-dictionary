@@ -27,5 +27,4 @@ private:
 
   hashmap<int, std::unordered_set<std::string>> m_dico;
   hashmap<std::string, std::unordered_set<int>> m_rev_dico;
-  mutable std::mutex m;
 };

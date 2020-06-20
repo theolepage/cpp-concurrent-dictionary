@@ -27,8 +27,6 @@ void hashmap_dictionary::_init(const dictionary_t& d)
 
 result_t hashmap_dictionary::search(const char* word) const
 {
-    std::lock_guard l(m);
-
     result_t r;
 
     const auto itemptr = m_rev_dico.find(word);
@@ -43,8 +41,6 @@ result_t hashmap_dictionary::search(const char* word) const
 
 void hashmap_dictionary::insert(int document_id, gsl::span<const char*> text)
 {
-    std::lock_guard l(m);
-
     auto& document = m_dico[document_id];
     for (auto&& word : text)
     {
@@ -55,8 +51,6 @@ void hashmap_dictionary::insert(int document_id, gsl::span<const char*> text)
 
 void hashmap_dictionary::remove(int document_id)
 {
-    std::lock_guard l(m);
-
     const auto entry = m_dico.find(document_id);
     if (entry == nullptr)
         return;

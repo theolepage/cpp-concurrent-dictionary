@@ -1,9 +1,3 @@
-# To-Do
-
-- [ ] gprof
-- [ ] Shared/unique lock
-- [ ] Lock on single node
-
 # Install
 
 1. Untar the archive

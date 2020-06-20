@@ -1,10 +1,7 @@
 #pragma once
 
 #include <memory>
-#include <optional>
-#include <functional>
-
-#include <iostream>
+#include "forward_shared_lock_guard.hpp"
 
 template <typename K, typename V>
 class hashmap_node
@@ -29,6 +26,11 @@ public:
         return next_;
     }
 
+    std::shared_mutex& get_mutex()
+    {
+        return mutex_;
+    }
+
     void set_key(const K& key)
     {
         key_ = key;
@@ -48,41 +50,31 @@ private:
     K key_;
     V value_;
     std::shared_ptr<hashmap_node> next_;
+    mutable std::shared_mutex mutex_;
 };
 
 template <typename K, typename V>
 class hashmap
 {
 public:
-    std::shared_ptr<hashmap_node<K, V>> find(const K& key) const
+    using node_ptr_t = std::shared_ptr<hashmap_node<K, V>>;
+
+    node_ptr_t find(const K& key) const
     {
-        std::shared_ptr<hashmap_node<K, V>> node = data_.at(hash(key));
-        while (node != nullptr)
-        {
-            if (node->get_key() == key)
-                return node;
-            node = node->get_next();
-        }
-        return nullptr;
+        return search(key);
     }
 
     V& operator[](const K& key)
     {
-        const unsigned long index = hash(key);
-        std::shared_ptr<hashmap_node<K, V>> prev_node = nullptr;
-        std::shared_ptr<hashmap_node<K, V>> node = data_.at(index);
-        while (node != nullptr)
-        {
-            if (node->get_key() == key)
-                return node->get_value();
-            prev_node = node;
-            node = node->get_next();
-        }
+        node_ptr_t prev_node = nullptr;
+        node_ptr_t node = search(key, prev_node);
+        if (node != nullptr)
+            return node->get_value();
 
         // Create new node
         const auto new_node = std::make_shared<hashmap_node<K, V>>(key, V());
         if (prev_node == nullptr)
-            data_[index] = new_node;
+            data_[hash(key)] = new_node;
         else
             prev_node->set_next(new_node);
         return new_node->get_value();
@@ -90,46 +82,28 @@ public:
 
     void insert(const K& key, const V& value)
     {
-        const unsigned long index = hash(key);
-        std::shared_ptr<hashmap_node<K, V>> prev_node = nullptr;
-        std::shared_ptr<hashmap_node<K, V>> node = data_.at(index);
-
-        // Find new node position
-        while (node != nullptr && node->get_key() != key)
-        {
-            prev_node = node;
-            node = node->get_next();
-        }
-
+        node_ptr_t prev_node = nullptr;
+        node_ptr_t node = search(key, prev_node);
         if (node != nullptr)
             return;
 
         // Create new node
         const auto new_node = std::make_shared<hashmap_node<K, V>>(key, value);
         if (prev_node == nullptr)
-            data_[index] = new_node;
+            data_[hash(key)] = new_node;
         else
             prev_node->set_next(new_node);
     }
 
     void erase(const K& key)
     {
-        const unsigned long index = hash(key);
-        std::shared_ptr<hashmap_node<K, V>> prev_node = nullptr;
-        std::shared_ptr<hashmap_node<K, V>> node = data_.at(index);
-
-        // Find node to remove position
-        while (node != nullptr && node->get_key() != key)
-        {
-            prev_node = node;
-            node = node->get_next();
-        }
-
+        node_ptr_t prev_node = nullptr;
+        node_ptr_t node = search(key, prev_node);
         if (node == nullptr)
             return;
 
         if (prev_node == nullptr)
-            data_[index] = node->get_next();
+            data_[hash(key)] = node->get_next();
         else
             prev_node->set_next(node->get_next());
     }
@@ -139,5 +113,47 @@ private:
         return std::hash<K>{}(key) % data_.size();
     }
 
-    std::array<std::shared_ptr<hashmap_node<K, V>>, 4096> data_;
+    node_ptr_t search(const K& key, node_ptr_t& prev_node) const
+    {
+        prev_node = nullptr;
+        node_ptr_t node = data_.at(hash(key));
+        if (node == nullptr)
+            return nullptr;
+
+        forward_shared_lock_guard lock(node->get_mutex());
+        while (node != nullptr)
+        {
+            if (node->get_key() == key)
+                return node;
+
+            prev_node = node;
+            node = node->get_next();
+
+            if (node)
+                lock.forward(node->get_mutex());
+        }
+        return nullptr;
+    }
+
+    node_ptr_t search(const K& key) const
+    {
+        node_ptr_t node = data_.at(hash(key));
+        if (node == nullptr)
+            return nullptr;
+
+        forward_shared_lock_guard lock(node->get_mutex());
+        while (node != nullptr)
+        {
+            if (node->get_key() == key)
+                return node;
+
+            node = node->get_next();
+
+            if (node)
+                lock.forward(node->get_mutex());
+        }
+        return nullptr;
+    }
+
+    std::array<node_ptr_t, 4096> data_;
 };
