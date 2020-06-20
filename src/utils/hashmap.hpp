@@ -5,6 +5,8 @@
 #include <optional>
 #include <functional>
 
+#include <iostream>
+
 template <typename K, typename V>
 class hashmap_node
 {
@@ -82,10 +84,13 @@ public:
                 return node->get_value();
             node = node->get_next();
         }
-        return data_.at(0)->get_value();
+
+        // Implicit insertion
+        auto new_node = insert(key, V());
+        return new_node->get_value();
     }
 
-    void insert(const K& key, const V& value)
+    std::shared_ptr<hashmap_node<K, V>> insert(const K& key, V&& value)
     {
         unsigned long index = hash(key);
         std::shared_ptr<hashmap_node<K, V>> prev_node = nullptr;
@@ -99,7 +104,7 @@ public:
         }
 
         if (node != nullptr)
-            return;
+            return nullptr;
 
         // Create new node
         auto new_node = std::make_shared<hashmap_node<K, V>>(key, value);
@@ -107,6 +112,7 @@ public:
             data_[index] = new_node;
         else
             prev_node->set_next(new_node);
+        return new_node;
     }
 
     void erase(const K& key)
@@ -133,7 +139,7 @@ public:
 private:
     unsigned long hash(const K& key) const
     {
-        return static_cast<unsigned long>(key) % data_.size();
+        return std::hash<K>{}(key) % data_.size();
     }
 
     std::vector<std::shared_ptr<hashmap_node<K, V>>> data_;

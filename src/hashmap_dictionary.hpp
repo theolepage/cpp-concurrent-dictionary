@@ -25,10 +25,7 @@ public:
 private:
   void _init(const dictionary_t& d);
 
-  std::unordered_map<int, std::unordered_set<std::string>> m_dico;
-  std::unordered_map<std::string, std::unordered_set<int>> m_rev_dico;
+  hashmap<int, std::unordered_set<std::string>> m_dico;
+  hashmap<std::string, std::unordered_set<int>> m_rev_dico;
   mutable std::mutex m;
 };
-
-
-

@@ -1,3 +1,11 @@
+# To-Do
+
+- [ ] gprof
+- [ ] Shared/unique lock
+- [ ] Lock on single node
+
+- [ ] Hashing open addressing
+
 # Install
 
 1. Untar the archive
