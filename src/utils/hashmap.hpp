@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <shared_mutex>
+#include <iostream>
 
 template <typename K, typename V>
 class hashmap_node
@@ -129,8 +130,28 @@ class hashmap
     using node_ptr_t = std::shared_ptr<node_t>;
 
 public:
+    void debug_info() const
+    {
+        for (size_t i = 0; i < data_.size(); i++)
+        {
+            auto node = data_.at(i);
+            int count = 0;
+            while (node != nullptr)
+            {
+                node = node->get_next();
+                count ++;
+            }
+            if (count >= 0)
+                std::cout << "Bucket " << i << ": "
+                          << count << " nodes" << std::endl;
+        }
+        exit(0);
+    }
+
     node_ptr_t find(const K& key) const
     {
+        // debug_info();
+
         node_ptr_t node = data_.at(hash(key));
         if (node == nullptr)
             return nullptr;
