@@ -57,5 +57,5 @@ void hashmap_dictionary::remove(int document_id)
 
     for (const auto& w : entry->get_value())
         m_rev_dico[w].erase(document_id);
-    m_dico.erase(document_id);
+    m_dico.remove(document_id);
 }

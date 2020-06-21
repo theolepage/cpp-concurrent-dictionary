@@ -1,3 +1,11 @@
+# To-Do
+
+## Hashmap
+
+- [ ] Check distribution in buckets
+- [ ] Optimistic locking? (see slides 3)
+- [ ] Atomic linked list? (see slides 3)
+
 # Install
 
 1. Untar the archive

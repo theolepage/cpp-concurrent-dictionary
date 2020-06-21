@@ -12,15 +12,15 @@ using namespace std::string_literals;
 TEST(HashMap, Simple)
 {
   hashmap<int, std::string> map;
-  map.insert(1, "nicolas");
-  map.insert(2, "lukas");
-  map.insert(3, "theo");
-  map.insert(4, "pierrick");
+  map[1] = "nicolas";
+  map[2] = "lukas";
+  map[3] = "theo";
+  map[4] = "pierrick";
 
   auto tmp = map.find(2);
   ASSERT_EQ("lukas", tmp->get_value());
 
-  map.erase(2);
+  map.remove(2);
   tmp = map.find(2);
   ASSERT_EQ(nullptr, tmp);
 }

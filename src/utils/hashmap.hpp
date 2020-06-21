@@ -1,7 +1,7 @@
 #pragma once
 
 #include <memory>
-#include "forward_shared_lock_guard.hpp"
+#include <shared_mutex>
 
 template <typename K, typename V>
 class hashmap_node
@@ -53,106 +53,168 @@ private:
     mutable std::shared_mutex mutex_;
 };
 
+enum class lock_type
+{
+    SHARED = 0,
+    EXCLUSIVE = 1 // unique
+};
+
+template <typename K, typename V>
+class forward_lock_guard
+{
+    using node_t = hashmap_node<K, V>;
+    using node_ptr_t = std::shared_ptr<node_t>;
+
+public:
+    forward_lock_guard(lock_type type, node_ptr_t node)
+        : type_(type), mutex_(&node->get_mutex())
+    {
+        // Lock mutex_
+        if      (type_ == lock_type::SHARED)    mutex_->lock_shared();
+        else if (type_ == lock_type::EXCLUSIVE) mutex_->lock();
+    }
+
+    ~forward_lock_guard()
+    {
+        if (mutex_ == nullptr)
+            return;
+
+        // Unlock mutex_
+        if      (type_ == lock_type::SHARED)    mutex_->unlock_shared();
+        else if (type_ == lock_type::EXCLUSIVE) mutex_->unlock();
+    }
+
+    void forward(node_ptr_t next)
+    {
+        auto next_mutex = &next->get_mutex();
+
+        // Lock next
+        if      (type_ == lock_type::SHARED)    next_mutex->lock_shared();
+        else if (type_ == lock_type::EXCLUSIVE) next_mutex->lock();
+
+        // Unlock mutex_
+        if      (type_ == lock_type::SHARED)    mutex_->unlock_shared();
+        else if (type_ == lock_type::EXCLUSIVE) mutex_->unlock();
+
+        mutex_ = next_mutex;
+    }
+
+    void forward_remove(node_ptr_t next, const K& key)
+    {
+        auto next_mutex = &next->get_mutex();
+
+        // Lock next
+        if      (type_ == lock_type::SHARED)    next_mutex->lock_shared();
+        else if (type_ == lock_type::EXCLUSIVE) next_mutex->lock();
+
+        if (next->get_key() != key)
+        {
+            // Unlock mutex_
+            if      (type_ == lock_type::SHARED)    mutex_->unlock_shared();
+            else if (type_ == lock_type::EXCLUSIVE) mutex_->unlock();
+        }
+
+        mutex_ = next_mutex;
+    }
+
+private:
+    lock_type type_;
+    std::shared_mutex* mutex_;
+};
+
 template <typename K, typename V>
 class hashmap
 {
-public:
-    using node_ptr_t = std::shared_ptr<hashmap_node<K, V>>;
+    using node_t = hashmap_node<K, V>;
+    using node_ptr_t = std::shared_ptr<node_t>;
 
+public:
     node_ptr_t find(const K& key) const
     {
-        return search(key);
+        node_ptr_t node = data_.at(hash(key));
+        if (node == nullptr)
+            return nullptr;
+
+        forward_lock_guard<K, V> lock(lock_type::SHARED, node);
+
+        while (node != nullptr && node->get_key() != key)
+        {
+            node = node->get_next();
+            if (node)
+                lock.forward(node);
+        }
+        return node;
     }
 
     V& operator[](const K& key)
     {
+        unsigned long index = hash(key);
+        node_ptr_t node = data_.at(index);
+
+        if (node == nullptr)
+        {
+            const auto new_node = std::make_shared<node_t>(key, V());
+            data_[index] = new_node;
+            return new_node->get_value();
+        }
+
+        forward_lock_guard<K, V> lock(lock_type::EXCLUSIVE, node);
         node_ptr_t prev_node = nullptr;
-        node_ptr_t node = search(key, prev_node);
+
+        while (node != nullptr && node->get_key() != key)
+        {
+            prev_node = node;
+            node = node->get_next();
+            if (node)
+                lock.forward(node);
+        }
+
         if (node != nullptr)
             return node->get_value();
 
         // Create new node
-        const auto new_node = std::make_shared<hashmap_node<K, V>>(key, V());
-        if (prev_node == nullptr)
-            data_[hash(key)] = new_node;
-        else
-            prev_node->set_next(new_node);
+        // prev_node is still locked
+        const auto new_node = std::make_shared<node_t>(key, V());
+        prev_node->set_next(new_node);
         return new_node->get_value();
     }
 
-    void insert(const K& key, const V& value)
+    void remove(const K& key)
     {
-        node_ptr_t prev_node = nullptr;
-        node_ptr_t node = search(key, prev_node);
-        if (node != nullptr)
+        unsigned long index = hash(key);
+        node_ptr_t node = data_.at(index);
+
+        if (node == nullptr)
             return;
+        if (node->get_key() == key)
+        {
+            data_[index] = node->get_next();
+            return;
+        }
 
-        // Create new node
-        const auto new_node = std::make_shared<hashmap_node<K, V>>(key, value);
-        if (prev_node == nullptr)
-            data_[hash(key)] = new_node;
-        else
-            prev_node->set_next(new_node);
-    }
-
-    void erase(const K& key)
-    {
+        forward_lock_guard<K, V> lock(lock_type::EXCLUSIVE, node);
         node_ptr_t prev_node = nullptr;
-        node_ptr_t node = search(key, prev_node);
+
+        while (node != nullptr && node->get_key() != key)
+        {
+            prev_node = node;
+            node = node->get_next();
+            if (node)
+                lock.forward_remove(node, key);
+        }
+
         if (node == nullptr)
             return;
 
-        if (prev_node == nullptr)
-            data_[hash(key)] = node->get_next();
-        else
-            prev_node->set_next(node->get_next());
+        // Remove node
+        // prev_node and node are locked
+        prev_node->set_next(node->get_next());
+        prev_node->get_mutex().unlock();
     }
 private:
     inline unsigned long hash(const K& key) const
     {
         return std::hash<K>{}(key) % data_.size();
-    }
-
-    node_ptr_t search(const K& key, node_ptr_t& prev_node) const
-    {
-        prev_node = nullptr;
-        node_ptr_t node = data_.at(hash(key));
-        if (node == nullptr)
-            return nullptr;
-
-        forward_shared_lock_guard lock(node->get_mutex());
-        while (node != nullptr)
-        {
-            if (node->get_key() == key)
-                return node;
-
-            prev_node = node;
-            node = node->get_next();
-
-            if (node)
-                lock.forward(node->get_mutex());
-        }
-        return nullptr;
-    }
-
-    node_ptr_t search(const K& key) const
-    {
-        node_ptr_t node = data_.at(hash(key));
-        if (node == nullptr)
-            return nullptr;
-
-        forward_shared_lock_guard lock(node->get_mutex());
-        while (node != nullptr)
-        {
-            if (node->get_key() == key)
-                return node;
-
-            node = node->get_next();
-
-            if (node)
-                lock.forward(node->get_mutex());
-        }
-        return nullptr;
     }
 
     std::array<node_ptr_t, 4096> data_;
