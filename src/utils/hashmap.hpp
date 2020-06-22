@@ -8,6 +8,9 @@ template <typename K, typename V>
 class hashmap_node
 {
 public:
+    hashmap_node()
+    {}
+
     hashmap_node(const K& key, const V& value)
         : key_(key), value_(value)
     {}
@@ -100,7 +103,7 @@ public:
         mutex_ = next_mutex;
     }
 
-    void forward_remove(node_ptr_t next, const K& key)
+    bool forward_remove(node_ptr_t next, const K& key)
     {
         auto next_mutex = &next->get_mutex();
 
@@ -113,9 +116,13 @@ public:
             // Unlock mutex_
             if      (type_ == lock_type::SHARED)    mutex_->unlock_shared();
             else if (type_ == lock_type::EXCLUSIVE) mutex_->unlock();
+
+            mutex_ = next_mutex;
+            return false;
         }
 
         mutex_ = next_mutex;
+        return true;
     }
 
 private:
@@ -130,6 +137,12 @@ class hashmap
     using node_ptr_t = std::shared_ptr<node_t>;
 
 public:
+    hashmap()
+    {
+        for (size_t i = 0; i < data_.size(); i++)
+            data_[i] = std::make_shared<node_t>();
+    }
+
     void debug_info() const
     {
         for (size_t i = 0; i < data_.size(); i++)
@@ -150,20 +163,19 @@ public:
 
     node_ptr_t find(const K& key) const
     {
-        // debug_info();
-
         node_ptr_t node = data_.at(hash(key));
-        if (node == nullptr)
-            return nullptr;
-
         forward_lock_guard<K, V> lock(lock_type::SHARED, node);
+
+        // Skip sentinel node
+        node = node->get_next();
+        if (node) lock.forward(node);
 
         while (node != nullptr && node->get_key() != key)
         {
             node = node->get_next();
-            if (node)
-                lock.forward(node);
+            if (node) lock.forward(node);
         }
+
         return node;
     }
 
@@ -171,30 +183,25 @@ public:
     {
         unsigned long index = hash(key);
         node_ptr_t node = data_.at(index);
-
-        if (node == nullptr)
-        {
-            const auto new_node = std::make_shared<node_t>(key, V());
-            data_[index] = new_node;
-            return new_node->get_value();
-        }
-
         forward_lock_guard<K, V> lock(lock_type::EXCLUSIVE, node);
-        node_ptr_t prev_node = nullptr;
+
+        // Skip sentinel node
+        node_ptr_t prev_node = node;
+        node = node->get_next();
+        if (node) lock.forward(node);
 
         while (node != nullptr && node->get_key() != key)
         {
             prev_node = node;
             node = node->get_next();
-            if (node)
-                lock.forward(node);
+            if (node) lock.forward(node);
         }
 
         if (node != nullptr)
             return node->get_value();
 
         // Create new node
-        // prev_node is still locked
+        // At this stage prev_node is still locked
         const auto new_node = std::make_shared<node_t>(key, V());
         prev_node->set_next(new_node);
         return new_node->get_value();
@@ -204,33 +211,29 @@ public:
     {
         unsigned long index = hash(key);
         node_ptr_t node = data_.at(index);
-
-        if (node == nullptr)
-            return;
-        if (node->get_key() == key)
-        {
-            data_[index] = node->get_next();
-            return;
-        }
-
         forward_lock_guard<K, V> lock(lock_type::EXCLUSIVE, node);
-        node_ptr_t prev_node = nullptr;
 
+        // Skip sentinel node
+        node_ptr_t prev_node = node;
+        node = node->get_next();
+        if (node) lock.forward(node);
+
+        bool unlock_prev_node = false;
         while (node != nullptr && node->get_key() != key)
         {
             prev_node = node;
             node = node->get_next();
             if (node)
-                lock.forward_remove(node, key);
+                unlock_prev_node = lock.forward_remove(node, key);
         }
 
         if (node == nullptr)
             return;
 
         // Remove node
-        // prev_node and node are locked
+        // At this stage prev_node and node are locked
         prev_node->set_next(node->get_next());
-        prev_node->get_mutex().unlock();
+        if (unlock_prev_node) prev_node->get_mutex().unlock();
     }
 private:
     inline unsigned long hash(const K& key) const
