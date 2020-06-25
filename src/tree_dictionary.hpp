@@ -4,6 +4,7 @@
 #include <vector>
 #include <shared_mutex>
 #include <memory>
+#include <tbb/concurrent_hash_map.h>
 
 #include "IDictionary.hpp"
 #include <unordered_set>
@@ -30,9 +31,7 @@ struct Leaf
     {
         std::shared_lock l(m);
         r.m_count = std::min(int(books.size()), MAX_RESULT_COUNT);
-        auto j = 0;
-        for (auto i = books.begin(); i != books.end() && j < r.m_count; i++)
-            r.m_matched[j++] = (*i);
+        std::copy_n(books.begin(), r.m_count, r.m_matched);
     }
 
     mutable std::shared_mutex m;
@@ -43,11 +42,12 @@ class Node
 {
 public:
     using book_set = std::unordered_set<int>;
+    using delete_map = tbb::concurrent_hash_map<int, std::vector<Leaf::book_set*>>;
 
     Node() = default;
 
     explicit Node(char letter)
-        :leaf(nullptr)
+        : leaf_(nullptr)
         , letter_(letter)
     {
         for (int i = 0; i < NB_LETTERS; ++i)
@@ -63,16 +63,16 @@ public:
     {
         if (!is_leaf)
         {
-            leaf = std::make_unique<Leaf>();
+            leaf_ = std::make_unique<Leaf>();
             is_leaf = true;
         }
 
-        leaf->insert(book);
+        leaf_->insert(book);
     }
 
     void remove_book(int book)
     {
-        leaf->erase(book);
+        leaf_->erase(book);
     }
 
     bool empty(void) const
@@ -99,7 +99,7 @@ public:
     {
         if (is_leaf)
         {
-            leaf->read_books(r);
+            leaf_->read_books(r);
         }
         else
         {
@@ -112,28 +112,50 @@ public:
         return is_leaf;
     }
 
-    void _init_leafs(std::vector<Node*>& leafs)
+    void _init_leafs(delete_map& book_leafs)
     {
         if (is_leaf)
-            leafs.emplace_back(this);
+        {
+            for (const int book : leaf_->books)
+            {
+                delete_map::accessor a;
+                if (book_leafs.find(a, book))
+                    a->second.emplace_back(&(leaf_->books));
+                else
+                {
+                    book_leafs.insert(
+                        std::make_pair(
+                            book, std::vector<Leaf::book_set*>{&(leaf_->books)}));
+                }
+            }
+        }
+
         for (int i = 0; i < NB_LETTERS; ++i)
         {
             if (children_[i] != nullptr)
-                children_[i]->_init_leafs(leafs);
+                children_[i]->_init_leafs(book_leafs);
         }
     }
 
+    Leaf* get_leaf()
+    {
+        return leaf_.get();
+    }
+
+    // TODO use a getter
+    mutable std::mutex m;                           // To lock when adding a new word
 private:
 
-    std::unique_ptr<Leaf> leaf;
-    char letter_;
-    std::unique_ptr<Node> children_[NB_LETTERS];
-    bool is_leaf = false;
+    std::unique_ptr<Leaf> leaf_;                    // Pointer to leaf if leaf
+    char letter_;                                   // Letter of node
+    std::unique_ptr<Node> children_[NB_LETTERS];    // Array size 26 of pointer to child nodes
+    bool is_leaf = false;                           // To know if leaf
 };
 
 class Tree_Dictionary : public IReversedDictionary
 {
 public:
+    using delete_map = tbb::concurrent_hash_map<int, std::vector<Leaf::book_set*>>;
     Tree_Dictionary();
     Tree_Dictionary(const dictionary_t& init);
 
@@ -148,6 +170,11 @@ public:
     virtual void insert(int document_id, gsl::span<const char*> text) final;
     virtual void remove(int document_id) final;
     void _add_word(const char* word, int book);
+    void _add_word(const char* word, int book, std::vector<Leaf::book_set*>& vect);
+
+    // TODO private
+    Node root_;
+    delete_map book_leafs_;
 
 private:
     void _init(const dictionary_t& d);
@@ -155,6 +182,4 @@ private:
     //void _add_word(const char* word, int book);
     void _remove(int document_id);
 
-    Node root_;
-    std::vector<Node*> leafs;
 };

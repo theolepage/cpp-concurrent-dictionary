@@ -12,7 +12,7 @@ void naive_async_dictionary::init(const dictionary_t& d)
   m_dic.init(d);
 }
 
-std::future<result_t> naive_async_dictionary::search(const char* query) const
+std::future<result_t> naive_async_dictionary::search(const char* query)
 {
   std::promise<result_t> p;
   p.set_value(m_dic.search(query));
