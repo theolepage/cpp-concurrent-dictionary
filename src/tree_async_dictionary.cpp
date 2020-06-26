@@ -2,12 +2,12 @@
 #include <iostream>
 #include "cptl/ctpl_stl.h"
 
-Tree_Async_Dictionary::Tree_Async_Dictionary()
+Tree_Async_Dictionary::Tree_Async_Dictionary() : thread_pool_(100)
 {
 
 }
 
-Tree_Async_Dictionary::Tree_Async_Dictionary(const dictionary_t& d)
+Tree_Async_Dictionary::Tree_Async_Dictionary(const dictionary_t& d) : thread_pool_(100)
 {
   m_dic.init(d);
 }
@@ -18,29 +18,17 @@ void Tree_Async_Dictionary::init(const dictionary_t& d)
 }
 
 // TODO put back const if needed
-std::future<result_t> Tree_Async_Dictionary::search(const char* query)
+std::future<result_t> Tree_Async_Dictionary::search(const char* query) const
 {
   // TODO Find a way to move promise inside the lambda, current problem say it's const
   auto p = new std::promise<result_t>;
   auto futur = p->get_future();
-  if (counter % 2 == 0)
-  {
-    thread_pool_one.run([this, query, p]()
-    {
-      p->set_value(this->m_dic.search(query));
-      delete p;
-    });
-  }
-  else
-  {
-    thread_pool_two.run([this, query, p]()
-    {
-      p->set_value(this->m_dic.search(query));
-      delete p;
-    });
-  }
-  ++counter;
-
+  thread_pool_.push([this, query, p]()
+                    {
+                      p->set_value(this->m_dic.search(query));
+                      delete p;
+                    }
+  );
   return futur;
 }
 

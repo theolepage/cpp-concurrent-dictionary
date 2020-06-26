@@ -1,7 +1,5 @@
 #include "naive_async_dictionary.hpp"
 
-
-
 naive_async_dictionary::naive_async_dictionary(const dictionary_t& d)
 {
   m_dic.init(d);
@@ -12,7 +10,7 @@ void naive_async_dictionary::init(const dictionary_t& d)
   m_dic.init(d);
 }
 
-std::future<result_t> naive_async_dictionary::search(const char* query)
+std::future<result_t> naive_async_dictionary::search(const char* query) const
 {
   std::promise<result_t> p;
   p.set_value(m_dic.search(query));

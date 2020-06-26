@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <climits>
 
 
 class Scenario
@@ -56,7 +57,10 @@ public:
   std::vector<result_t> execute(IReversedDictionary& dic) const;
 
   // Execute a scenario async-way
-  std::vector<result_t> execute(IAsyncReversedDictionary& dic) const;
+  std::vector<result_t> execute(IAsyncReversedDictionary& dic,
+                                int max_parallel_queries = INT_MAX,
+                                int max_parallel_read = 50,
+                                int max_parallel_write = 50) const;
 
   // Get the scenario parameters
   const param_t& params() const;

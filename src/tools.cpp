@@ -281,55 +281,92 @@ std::vector<result_t> Scenario::execute(IReversedDictionary& dic) const
 }
 
 
-std::vector<result_t> Scenario::execute(IAsyncReversedDictionary& dic) const
+std::vector<result_t> Scenario::execute(IAsyncReversedDictionary& dic,
+                                int max_parallel_queries,
+                                int max_parallel_read,
+                                int max_parallel_write) const
 {
+  assert(max_parallel_queries > 0);
+  assert(max_parallel_read > 0);
+  assert(max_parallel_write > 0);
+
   std::vector<result_t> results;
   results.reserve(this->m_impl->param.n_queries);
 
-  constexpr int SEARCH_BUFFER_SIZE = 50;
-  constexpr int INDEL_BUFFER_SIZE = 50;
+  int READ_BUFFER_SIZE = max_parallel_read;
+  int WRITE_BUFFER_SIZE = max_parallel_write;
 
-  std::future<result_t> search_buffer[SEARCH_BUFFER_SIZE];
-  std::future<void>     indel_buffer[INDEL_BUFFER_SIZE];
+  std::vector<std::future<result_t>> read_buffer(READ_BUFFER_SIZE);
+  std::vector<std::future<void>>     write_buffer(WRITE_BUFFER_SIZE);
 
-  unsigned search_buffer_pos = 0;
-  unsigned indel_buffer_pos = 0;
+  int read_buffer_pos  = 0;
+  int write_buffer_pos = 0;
+  int qcount           = max_parallel_queries; // Number of rooms (queries) remaining
 
   for (auto&& q : this->m_impl->queries)
   {
+    if (qcount == 0)
+    {
+      int m = std::max(READ_BUFFER_SIZE, WRITE_BUFFER_SIZE);
+      for (int i = 0; i < m && qcount == 0; ++i)
+      {
+        int rp = (read_buffer_pos + i) % READ_BUFFER_SIZE;
+        int wp = (write_buffer_pos + i) % WRITE_BUFFER_SIZE;
+
+        if (read_buffer[rp].valid())
+        {
+          results.push_back(read_buffer[rp].get());
+          qcount++;
+        }
+        if (write_buffer[wp].valid())
+        {
+          write_buffer[wp].get();
+          qcount++;
+        }
+      }
+    }
+
+
     if (q.op == query_t::search)
     {
-      if (search_buffer[search_buffer_pos].valid())
-        results.push_back(search_buffer[search_buffer_pos].get());
+      if (read_buffer[read_buffer_pos].valid())
+      {
+        results.push_back(read_buffer[read_buffer_pos].get());
+        qcount++;
+      }
     }
     else
     {
-      if (indel_buffer[indel_buffer_pos].valid())
-        indel_buffer[indel_buffer_pos].get();
+      if (write_buffer[write_buffer_pos].valid())
+      {
+        write_buffer[write_buffer_pos].get();
+        qcount++;
+      }
     }
 
     switch (q.op)
     {
     case query_t::search:
-      search_buffer[search_buffer_pos] = dic.search(m_impl->words[q.arg].c_str()); // non-blocking
-      search_buffer_pos = (search_buffer_pos + 1) % SEARCH_BUFFER_SIZE;
+      read_buffer[read_buffer_pos] = dic.search(m_impl->words[q.arg].c_str()); // non-blocking
+      read_buffer_pos = (read_buffer_pos + 1) % READ_BUFFER_SIZE;
       break;
     case query_t::insert:
-      indel_buffer[indel_buffer_pos] = dic.insert(m_impl->doc_ids[q.arg], m_impl->texts[q.arg]);
-      indel_buffer_pos = (indel_buffer_pos + 1) % INDEL_BUFFER_SIZE;
+      write_buffer[write_buffer_pos] = dic.insert(m_impl->doc_ids[q.arg], m_impl->texts[q.arg]);
+      write_buffer_pos = (write_buffer_pos + 1) % WRITE_BUFFER_SIZE;
       break;
     case query_t::erase:
-      indel_buffer[indel_buffer_pos] = dic.remove(m_impl->doc_ids[q.arg]);
-      indel_buffer_pos = (indel_buffer_pos + 1) % INDEL_BUFFER_SIZE;
+      write_buffer[write_buffer_pos] = dic.remove(m_impl->doc_ids[q.arg]);
+      write_buffer_pos = (write_buffer_pos + 1) % WRITE_BUFFER_SIZE;
       break;
     }
+    qcount--;
   }
 
-  for (int i = 0; i < SEARCH_BUFFER_SIZE; ++i)
+  for (int i = 0; i < READ_BUFFER_SIZE; ++i)
   {
-    if (search_buffer[search_buffer_pos].valid())
-      results.push_back(search_buffer[search_buffer_pos].get());
-    search_buffer_pos = (search_buffer_pos + 1) % SEARCH_BUFFER_SIZE;
+    if (read_buffer[read_buffer_pos].valid())
+      results.push_back(read_buffer[read_buffer_pos].get());
+    read_buffer_pos = (read_buffer_pos + 1) % READ_BUFFER_SIZE;
   }
   return results;
 }
