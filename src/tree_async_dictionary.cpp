@@ -1,6 +1,5 @@
 #include "tree_async_dictionary.hpp"
 #include <iostream>
-#include "cptl/ctpl_stl.h"
 
 Tree_Async_Dictionary::Tree_Async_Dictionary() : thread_pool_(100)
 {

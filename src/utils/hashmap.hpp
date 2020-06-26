@@ -137,6 +137,9 @@ class hashmap
     using node_ptr_t = std::shared_ptr<node_t>;
 
 public:
+    // To-Do: operator[] shared, insert beginning
+    // To-Do:  remove/insert value
+
     hashmap()
     {
         for (size_t i = 0; i < data_.size(); i++)

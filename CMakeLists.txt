@@ -24,19 +24,28 @@ configure_file(src/resources.cpp.in src/resources.cpp)
 add_library(dictionary
   src/IAsyncDictionary.hpp
   src/IDictionary.hpp
+  src/tools.cpp
+  src/tools.hpp
+
+  # naive
   src/naive_async_dictionary.cpp
   src/naive_async_dictionary.hpp
   src/naive_dictionary.cpp
   src/naive_dictionary.hpp
+
+  # tree
   src/tree_dictionary.cpp
   src/tree_dictionary.hpp
   src/tree_async_dictionary.cpp
   src/tree_async_dictionary.hpp
+
+  # hashmap
   src/hashmap_dictionary.cpp
   src/hashmap_dictionary.hpp
-  src/tools.cpp
-  src/tools.hpp
+  src/hashmap_async_dictionary.cpp
+  src/hashmap_async_dictionary.hpp
   src/utils/hashmap.hpp
+
   ${CMAKE_CURRENT_BINARY_DIR}/src/resources.cpp
   )
 
