@@ -151,7 +151,7 @@ TEST(Dictionary, AsyncConsistency)
   naive_async_dictionary async_dic;
   scn.prepare(dic);
   scn.prepare(async_dic);
-  auto r1 = scn.execute(async_dic);
+  auto r1 = scn.execute(async_dic, 1);
   auto r2 = scn.execute(dic);
   ASSERT_EQ(r1, r2);
 }

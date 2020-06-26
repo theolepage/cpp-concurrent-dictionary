@@ -9,10 +9,11 @@ find_package(GTest 1.8.1 REQUIRED)
 find_package(benchmark 1.5.0 REQUIRED)
 find_package(gsl-lite 0.34.0 REQUIRED)
 find_package(spdlog 1.6.0 REQUIRED)
+find_package(TBB 2020.1 REQUIRED)
 
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -fopenmp")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=thread")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -march=native")
 
@@ -27,6 +28,10 @@ add_library(dictionary
   src/naive_async_dictionary.hpp
   src/naive_dictionary.cpp
   src/naive_dictionary.hpp
+  src/tree_dictionary.cpp
+  src/tree_dictionary.hpp
+  src/tree_async_dictionary.cpp
+  src/tree_async_dictionary.hpp
   src/hashmap_dictionary.cpp
   src/hashmap_dictionary.hpp
   src/tools.cpp
@@ -36,7 +41,7 @@ add_library(dictionary
   )
 
 
-target_link_libraries(dictionary PUBLIC gsl-lite::gsl-lite spdlog::spdlog)
+target_link_libraries(dictionary PUBLIC gsl-lite::gsl-lite spdlog::spdlog TBB::TBB gomp)
 
 add_executable(tests src/tests.cpp)
 target_link_libraries(tests PRIVATE dictionary GTest::GTest)

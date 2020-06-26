@@ -1,7 +1,5 @@
 #include "naive_async_dictionary.hpp"
 
-
-
 naive_async_dictionary::naive_async_dictionary(const dictionary_t& d)
 {
   m_dic.init(d);

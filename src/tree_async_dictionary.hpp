@@ -1,15 +1,17 @@
 #pragma once
 
 #include "IAsyncDictionary.hpp"
-#include "naive_dictionary.hpp"
-
+#include "tree_dictionary.hpp"
+#include <tbb/task_group.h>
+#include "cptl/ctpl_stl.h"
+#include "thread_pool.hpp"
 
 /// The naive implementation is blocking to ensure Sequential Consistency
-class naive_async_dictionary : public IAsyncReversedDictionary
+class Tree_Async_Dictionary : public IAsyncReversedDictionary
 {
 public:
-  naive_async_dictionary() = default;
-  naive_async_dictionary(const dictionary_t& d);
+  Tree_Async_Dictionary();
+  Tree_Async_Dictionary(const dictionary_t& d);
 
   void init(const dictionary_t& d) final;
 
@@ -18,6 +20,8 @@ public:
   std::future<void>     remove(int document_id) final;
 
 
+  Tree_Dictionary m_dic;
 private:
-  naive_dictionary m_dic;
+
+  mutable Thread_Pool thread_pool_;
 };
