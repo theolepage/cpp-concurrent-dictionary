@@ -4,6 +4,7 @@
 #include "naive_async_dictionary.hpp"
 #include "tree_dictionary.hpp"
 #include "tree_async_dictionary.hpp"
+#include "hashmap_dictionary.hpp"
 
 #include <benchmark/benchmark.h>
 
@@ -58,6 +59,17 @@ BENCHMARK_DEFINE_F(BMScenario, Tree_NoAsync)(benchmark::State& st)
     st.SetItemsProcessed(st.iterations() * m_scenario->params().n_queries);
 }
 
+BENCHMARK_DEFINE_F(BMScenario, Hashmap_NoAsync)(benchmark::State& st)
+{
+  hashmap_dictionary dic;
+  m_scenario->prepare(dic);
+
+  for (auto _ : st)
+    m_scenario->execute(dic);
+
+  st.SetItemsProcessed(st.iterations() * m_scenario->params().n_queries);
+}
+
 BENCHMARK_DEFINE_F(BMScenario, Naive_Async)(benchmark::State& st)
 {
   naive_async_dictionary dic;
@@ -83,13 +95,20 @@ BENCHMARK_DEFINE_F(BMScenario, Tree_Async)(benchmark::State& st)
 BENCHMARK_REGISTER_F(BMScenario, Naive_NoAsync)
     ->Unit(benchmark::kMillisecond) //
     ->UseRealTime();
-BENCHMARK_REGISTER_F(BMScenario, Tree_NoAsync)
-->Unit(benchmark::kMillisecond) //
-    ->UseRealTime();
+
 BENCHMARK_REGISTER_F(BMScenario, Naive_Async)
     ->Unit(benchmark::kMillisecond) //
     ->UseRealTime();
+    
+BENCHMARK_REGISTER_F(BMScenario, Tree_NoAsync)
+    ->Unit(benchmark::kMillisecond) //
+    ->UseRealTime();
+
 BENCHMARK_REGISTER_F(BMScenario, Tree_Async)
+    ->Unit(benchmark::kMillisecond) //
+    ->UseRealTime();
+
+BENCHMARK_REGISTER_F(BMScenario, Hashmap_NoAsync)
     ->Unit(benchmark::kMillisecond) //
     ->UseRealTime();
 

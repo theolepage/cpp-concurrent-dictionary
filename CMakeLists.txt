@@ -32,8 +32,11 @@ add_library(dictionary
   src/tree_dictionary.hpp
   src/tree_async_dictionary.cpp
   src/tree_async_dictionary.hpp
+  src/hashmap_dictionary.cpp
+  src/hashmap_dictionary.hpp
   src/tools.cpp
   src/tools.hpp
+  src/utils/hashmap.hpp
   ${CMAKE_CURRENT_BINARY_DIR}/src/resources.cpp
   )
 
