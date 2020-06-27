@@ -152,7 +152,7 @@ void Tree_Dictionary::_remove(int document_id)
         for (size_t i = 0; i < a->second.size(); ++i)
         {
             a->second[i]->erase(document_id);
-            a->second[i]  = nullptr;
+            a->second[i] = nullptr;
         }
     }
 }

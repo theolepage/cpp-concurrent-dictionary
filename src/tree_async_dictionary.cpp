@@ -34,17 +34,29 @@ std::future<result_t> Tree_Async_Dictionary::search(const char* query) const
 
 std::future<void> Tree_Async_Dictionary::insert(int doc_id, gsl::span<const char*> text)
 {
-  std::promise<void> p;
-  m_dic.insert(doc_id, text);
-  p.set_value();
-  return p.get_future();
+  auto p = new std::promise<void>;
+  auto futur = p->get_future();
+  thread_pool_.push([this, doc_id, text, p]()
+                    {
+                      this->m_dic.insert(doc_id, text);
+                      p->set_value();
+                      delete p;
+                    }
+  );
+  return futur;
 }
 
 std::future<void> Tree_Async_Dictionary::remove(int doc_id)
 {
-  std::promise<void> p;
-  m_dic.remove(doc_id);
-  p.set_value();
-  return p.get_future();
+  auto p = new std::promise<void>;
+  auto futur = p->get_future();
+  /*thread_pool_.push([this, doc_id, p]()
+                    {*/
+                      this->m_dic.remove(doc_id);
+                      p->set_value();
+                      /*delete p;
+                    }
+  );*/
+  return futur;
 }
 
