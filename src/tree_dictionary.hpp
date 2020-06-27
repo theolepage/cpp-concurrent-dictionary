@@ -5,6 +5,7 @@
 #include <shared_mutex>
 #include <memory>
 #include <tbb/concurrent_hash_map.h>
+#include <algorithm>
 
 #include "IDictionary.hpp"
 #include <unordered_set>
@@ -13,18 +14,19 @@ static constexpr auto NB_LETTERS = 26;
 
 struct Leaf
 {
-    using book_set = std::unordered_set<int>;
+    // TODO with vector no risk of duplicate ?
+    using book_set = std::vector<int>;
 
     void insert(int book)
     {
         std::unique_lock l(m);
-        books.insert(book);
+        books.emplace_back(book);
     }
 
     void erase(int book)
     {
         std::unique_lock l(m);
-        books.erase(book);
+        books.erase(std::remove(books.begin(), books.end(), book), books.end());
     }
 
     void read_books(result_t& r)

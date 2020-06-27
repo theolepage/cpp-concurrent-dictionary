@@ -151,7 +151,8 @@ void Tree_Dictionary::_remove(int document_id)
 
         for (size_t i = 0; i < a->second.size(); ++i)
         {
-            a->second[i]->erase(document_id);
+            a->second[i]->erase(std::remove(
+                a->second[i]->begin(), a->second[i]->end(), document_id), a->second[i]->end());
             a->second[i] = nullptr;
         }
     }
