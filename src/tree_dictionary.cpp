@@ -7,10 +7,12 @@
 
 Tree_Dictionary::Tree_Dictionary()
     : root_(Node('\0'))
+    , book_leafs_(Tree_Dictionary::delete_map())
 {}
 
 Tree_Dictionary::Tree_Dictionary(const dictionary_t& d)
     : root_(Node('\0'))
+    , book_leafs_(Tree_Dictionary::delete_map())
 {
     this->_init(d);
 }
@@ -132,11 +134,11 @@ void Tree_Dictionary::insert(int document_id, gsl::span<const char*> text)
     delete_map::accessor a;
     if (!book_leafs_.find(a, document_id))
     {
-        book_leafs_.insert(a,
-            std::make_pair(document_id, std::vector<Leaf::book_set*>{}));
+        book_leafs_.insert(
+            a, std::make_pair(document_id, std::vector<Leaf::book_set*>{}));
     }
 
-    if (a->second.empty() || a->second[0] == nullptr)
+    if (a->second.empty())
     {
         for (const char* word : s)
         {
@@ -160,8 +162,9 @@ void Tree_Dictionary::_remove(int document_id)
             a->second[i]->erase(std::remove(a->second[i]->begin(),
                                             a->second[i]->end(), document_id),
                                 a->second[i]->end());
-            a->second[i] = nullptr;
         }
+
+        book_leafs_.erase(a);
     }
 }
 
