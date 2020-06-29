@@ -43,7 +43,6 @@ struct Leaf
 class Node
 {
 public:
-    using book_set = std::unordered_set<int>;
     using delete_map = tbb::concurrent_hash_map<int, std::vector<Leaf::book_set*>>;
 
     Node() = default;

@@ -23,7 +23,7 @@ public:
         params.word_redoundancy = 0.3f;
         params.word_occupancy   = 0.9f;
         params.n_queries        = 1000000;
-        params.ratio_indel      = 0.0;
+        params.ratio_indel      = 0.2;
 
 
         m_scenario = std::make_unique<Scenario>(params);
@@ -107,9 +107,9 @@ BENCHMARK_DEFINE_F(BMScenario, Tree_Async)(benchmark::State& st)
 BENCHMARK_REGISTER_F(BMScenario, Naive_NoAsync)
     ->Unit(benchmark::kMillisecond) //
     ->UseRealTime();
-BENCHMARK_REGISTER_F(BMScenario, Hashmap_NoAsync)
-    ->Unit(benchmark::kMillisecond) //
-    ->UseRealTime();
+//BENCHMARK_REGISTER_F(BMScenario, Hashmap_NoAsync)
+//    ->Unit(benchmark::kMillisecond) //
+//    ->UseRealTime();
 BENCHMARK_REGISTER_F(BMScenario, Tree_NoAsync)
     ->Unit(benchmark::kMillisecond) //
     ->UseRealTime();
@@ -117,9 +117,9 @@ BENCHMARK_REGISTER_F(BMScenario, Tree_NoAsync)
 BENCHMARK_REGISTER_F(BMScenario, Naive_Async)
     ->Unit(benchmark::kMillisecond) //
     ->UseRealTime();
-BENCHMARK_REGISTER_F(BMScenario, Hashmap_Async)
-    ->Unit(benchmark::kMillisecond) //
-    ->UseRealTime();
+//BENCHMARK_REGISTER_F(BMScenario, Hashmap_Async)
+//    ->Unit(benchmark::kMillisecond) //
+//    ->UseRealTime();
 BENCHMARK_REGISTER_F(BMScenario, Tree_Async)
     ->Unit(benchmark::kMillisecond) //
     ->UseRealTime();

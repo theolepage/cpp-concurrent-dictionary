@@ -1,8 +1,7 @@
 #include "tree_dictionary.hpp"
 
 #include <algorithm>
-#include <tbb/tbb.h>
-#include <iostream>
+#include <unordered_set>
 
 #include "IDictionary.hpp"
 
@@ -122,6 +121,10 @@ public:
 void Tree_Dictionary::insert(int document_id, gsl::span<const char*> text)
 {
     // TODO change it to use their concurrent hashmap
+    auto s = std::unordered_set<const char*>();
+    for (const char* word : text)
+        s.emplace(word);
+
     delete_map::accessor a;
     if (!book_leafs_.find(a, document_id))
     {
@@ -131,11 +134,13 @@ void Tree_Dictionary::insert(int document_id, gsl::span<const char*> text)
         book_leafs_.find(a, document_id); // Fill a
     }
 
-    for (const char* word : text)
+    if (a->second[0] == nullptr)
     {
-        _add_word(word, document_id, a->second);
+        for (const char* word : s)
+        {
+            _add_word(word, document_id, a->second);
+        }
     }
-
     //parallel_for(tbb::blocked_range<size_t>(0,text.size()),
     //    apply_add_word(text, this, document_id, a));
 }
