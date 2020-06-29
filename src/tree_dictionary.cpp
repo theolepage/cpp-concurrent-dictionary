@@ -28,7 +28,8 @@ void Tree_Dictionary::_init(const dictionary_t& d)
     root_._init_leafs(book_leafs_);
 }
 
-void Tree_Dictionary::_add_word(const char* word, int book, std::vector<Leaf::book_set*>& vect)
+void Tree_Dictionary::_add_word(const char* word, int book,
+                                std::vector<Leaf::book_set*>& vect)
 {
     Node* cur = &root_;
     while (*word != '\0')
@@ -36,7 +37,8 @@ void Tree_Dictionary::_add_word(const char* word, int book, std::vector<Leaf::bo
         if ((*cur)[*word] == nullptr)
         {
             // If 2 threads enters in the if at the same time
-            // Can't use std::call_once cause this function maybe called multiple time
+            // Can't use std::call_once cause this function maybe called
+            // multiple time
             std::lock_guard(cur->m);
             if ((*cur)[*word] == nullptr)
                 cur->add_child(*word);
@@ -57,7 +59,8 @@ void Tree_Dictionary::_add_word(const char* word, const int book)
         if ((*cur)[*word] == nullptr)
         {
             // If 2 threads enters in the if at the same time, thread-safe
-            // Can't use std::call_once cause this function maybe called multiple times
+            // Can't use std::call_once cause this function maybe called
+            // multiple times
             std::lock_guard(cur->m);
             if ((*cur)[*word] == nullptr)
                 cur->add_child(*word);
@@ -114,7 +117,8 @@ public:
                     Tree_Dictionary* dico,
                     const int document_id,
                     Tree_Dictionary::delete_map::accessor& acc) :
-                    list_(list), dico_(dico), document_id_(document_id), acc_(acc)
+                    list_(list), dico_(dico), document_id_(document_id),
+acc_(acc)
                     {}
 };
 */
@@ -128,36 +132,34 @@ void Tree_Dictionary::insert(int document_id, gsl::span<const char*> text)
     delete_map::accessor a;
     if (!book_leafs_.find(a, document_id))
     {
-        book_leafs_.insert(
-                    std::make_pair(
-                        document_id, std::vector<Leaf::book_set*>{}));
-        book_leafs_.find(a, document_id); // Fill a
+        book_leafs_.insert(a,
+            std::make_pair(document_id, std::vector<Leaf::book_set*>{}));
     }
 
-    if (a->second[0] == nullptr)
+    if (a->second.empty() || a->second[0] == nullptr)
     {
         for (const char* word : s)
         {
             _add_word(word, document_id, a->second);
         }
     }
-    //parallel_for(tbb::blocked_range<size_t>(0,text.size()),
+    // parallel_for(tbb::blocked_range<size_t>(0,text.size()),
     //    apply_add_word(text, this, document_id, a));
 }
-
 
 void Tree_Dictionary::_remove(int document_id)
 {
     delete_map::accessor a;
     if (book_leafs_.find(a, document_id))
     {
-        if (a->second[0] == nullptr)
+        if (a->second.empty() || a->second[0] == nullptr)
             return;
 
         for (size_t i = 0; i < a->second.size(); ++i)
         {
-            a->second[i]->erase(std::remove(
-                a->second[i]->begin(), a->second[i]->end(), document_id), a->second[i]->end());
+            a->second[i]->erase(std::remove(a->second[i]->begin(),
+                                            a->second[i]->end(), document_id),
+                                a->second[i]->end());
             a->second[i] = nullptr;
         }
     }

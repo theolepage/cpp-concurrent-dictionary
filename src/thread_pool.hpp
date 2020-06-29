@@ -12,8 +12,7 @@ public:
     template <typename T>
     void push(T&& t)
     {
-        pools_[counter_ % pools_.size()].run(t);
-        ++counter_;
+        pools_[counter_++ % pools_.size()].run(t);
     }
 
 private:
