@@ -1,3 +1,11 @@
+# To-Do
+
+## Hashmap
+
+- [X] Check distribution in buckets (good distribution, 6-10 nodes per bucket)
+- [ ] Optimistic locking? (see slides 3)
+- [ ] Atomic linked list? (see slides 3)
+
 # Install
 
 1. Untar the archive
