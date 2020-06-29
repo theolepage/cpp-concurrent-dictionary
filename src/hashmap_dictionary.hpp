@@ -1,6 +1,5 @@
 #pragma once
 #include "IDictionary.hpp"
-#include <unordered_map>
 #include <unordered_set>
 #include <mutex>
 #include <vector>
@@ -25,6 +24,6 @@ public:
 private:
   void _init(const dictionary_t& d);
 
-  hashmap<int, std::unordered_set<std::string>> m_dico;
-  hashmap<std::string, std::unordered_set<int>> m_rev_dico;
+  hashmap<int, std::vector<std::string>> m_dico;
+  hashmap<std::string, std::vector<int>> m_rev_dico;
 };

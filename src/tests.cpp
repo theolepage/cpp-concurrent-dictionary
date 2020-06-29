@@ -1,28 +1,30 @@
 #include <gtest/gtest.h>
 #include <functional>
 #include <thread>
+#include <unordered_set>
 #include "tools.hpp"
 #include "naive_dictionary.hpp"
 #include "naive_async_dictionary.hpp"
 #include "hashmap_dictionary.hpp"
+#include "hashmap_async_dictionary.hpp"
 #include "utils/hashmap.hpp"
 
 using namespace std::string_literals;
 
 TEST(HashMap, Simple)
 {
-  hashmap<int, std::string> map;
-  map[1] = "nicolas";
-  map[2] = "lukas";
-  map[3] = "theo";
-  map[4] = "pierrick";
+  hashmap<int, std::vector<std::string>> map;
+  map.insert_value(1, "nicolas");
+  map.insert_value(2, "pierrick (rince les combis)");
+  map.insert_value(3, "lukas");
+  map.insert_value(4, "theo");
 
-  auto tmp = map.find(2);
-  ASSERT_EQ("lukas", tmp->get_value());
+  auto tmp = map.find(3);
+  ASSERT_EQ("lukas", tmp.value().at(0));
 
   map.remove(2);
   tmp = map.find(2);
-  ASSERT_EQ(nullptr, tmp);
+  ASSERT_EQ(false, tmp.has_value());
 }
 
 // TODO
@@ -156,4 +158,23 @@ TEST(Dictionary, AsyncConsistency)
   ASSERT_EQ(r1, r2);
 }
 
+TEST(HashmapDictionary, AsyncConsistency)
+{
+  Scenario::param_t params;
+  params.word_count = 10000;
+  params.doc_count = 1000;
+  params.word_redoundancy = 0.3f;
+  params.word_occupancy = 0.9f;
+  params.n_queries = 100000;
+  params.ratio_indel = 0.2;
 
+  Scenario scn(params);
+
+  hashmap_dictionary dic;
+  hashmap_async_dictionary async_dic;
+  scn.prepare(dic);
+  scn.prepare(async_dic);
+  auto r1 = scn.execute(async_dic, 1);
+  auto r2 = scn.execute(dic);
+  ASSERT_EQ(r1, r2);
+}

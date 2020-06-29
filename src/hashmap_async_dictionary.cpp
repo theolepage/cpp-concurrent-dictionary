@@ -22,7 +22,8 @@ std::future<result_t> hashmap_async_dictionary::search(const char* query) const
   auto futur = p->get_future();
   thread_pool_.push([this, query, p]()
                     {
-                      p->set_value(this->m_dic.search(query));
+                      auto value = this->m_dic.search(query);
+                      p->set_value(value);
                       delete p;
                     }
   );
@@ -34,7 +35,7 @@ std::future<void> hashmap_async_dictionary::insert(int doc_id, gsl::span<const c
 {
   auto p = new std::promise<void>;
   auto futur = p->get_future();
-  thread_pool_.push([this, doc_id, &text, p]()
+  thread_pool_.push([this, doc_id, text, p]()
                     {
                       this->m_dic.insert(doc_id, text);
                       p->set_value();

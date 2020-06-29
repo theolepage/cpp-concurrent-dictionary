@@ -23,7 +23,7 @@ public:
         params.word_redoundancy = 0.3f;
         params.word_occupancy   = 0.9f;
         params.n_queries        = 1000000;
-        params.ratio_indel      = 0.0;
+        params.ratio_indel      = 0.2;
 
 
         m_scenario = std::make_unique<Scenario>(params);
