@@ -48,12 +48,12 @@ std::future<void> Tree_Async_Dictionary::remove(int doc_id)
 {
     auto p = new std::promise<void>;
     auto futur = p->get_future();
-    /*thread_pool_.push([this, doc_id, p]()
-                      {*/
+    thread_pool_.push([this, doc_id, p]()
+                      {
     this->m_dic.remove(doc_id);
     p->set_value();
-    /*delete p;
+    delete p;
   }
-);*/
+);
     return futur;
 }
