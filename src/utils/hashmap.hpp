@@ -61,7 +61,7 @@ class forward_lock_guard
 
 public:
     forward_lock_guard(lock_type type, node_ptr_t node)
-        : type_(type), mutex_(&node->get_mutex())
+        : type_(type), mutex_(&node->get_mutex()), prev_mutex_(nullptr)
     {
         // Lock mutex_
         if      (type_ == lock_type::SHARED)    mutex_->lock_shared();
@@ -70,12 +70,19 @@ public:
 
     ~forward_lock_guard()
     {
-        if (mutex_ == nullptr)
-            return;
+        if (mutex_ != nullptr)
+        {
+            // Unlock mutex_
+            if      (type_ == lock_type::SHARED)    mutex_->unlock_shared();
+            else if (type_ == lock_type::EXCLUSIVE) mutex_->unlock();
+        }
 
-        // Unlock mutex_
-        if      (type_ == lock_type::SHARED)    mutex_->unlock_shared();
-        else if (type_ == lock_type::EXCLUSIVE) mutex_->unlock();
+        if (prev_mutex_ != nullptr)
+        {
+            // Unlock prev_mutex_
+            if      (type_ == lock_type::SHARED)    prev_mutex_->unlock_shared();
+            else if (type_ == lock_type::EXCLUSIVE) prev_mutex_->unlock();
+        }
     }
 
     void forward(node_ptr_t next)
@@ -93,7 +100,7 @@ public:
         mutex_ = next_mutex;
     }
 
-    bool forward_remove(node_ptr_t next, const K& key)
+    void forward_remove(node_ptr_t next, const K& key)
     {
         auto next_mutex = &next->get_mutex();
 
@@ -106,18 +113,20 @@ public:
             // Unlock mutex_
             if      (type_ == lock_type::SHARED)    mutex_->unlock_shared();
             else if (type_ == lock_type::EXCLUSIVE) mutex_->unlock();
-
+        }
+        else
+        {
+            prev_mutex_ = mutex_;
             mutex_ = next_mutex;
-            return false;
         }
 
         mutex_ = next_mutex;
-        return true;
     }
 
 private:
     lock_type type_;
     std::shared_mutex* mutex_;
+    std::shared_mutex* prev_mutex_;
 };
 
 template <typename K, typename V>
@@ -176,7 +185,7 @@ public:
     {
         unsigned long index = hash(key);
         node_ptr_t node = data_.at(index);
-        forward_lock_guard<K, V> lock(lock_type::EXCLUSIVE, node);
+        forward_lock_guard<K, V> lock(lock_type::SHARED, node);
 
         // Skip sentinel node
         node = node->get_next();
@@ -202,21 +211,20 @@ public:
         node = node->get_next();
         if (node) lock.forward(node);
 
-        bool unlock_prev_node = false;
         while (node != nullptr && node->get_key() != key)
         {
             prev_node = node;
             node = node->get_next();
-            if (node) unlock_prev_node = lock.forward_remove(node, key);
+            if (node) lock.forward_remove(node, key);
         }
 
         if (node == nullptr)
             return;
 
         // Remove node
-        // At this stage prev_node and node are locked
+        // At this stage prev_node and node are locked because
+        // we called forward_remove
         prev_node->set_next(node->get_next());
-        if (unlock_prev_node) prev_node->get_mutex().unlock();
     }
 
     template <typename T>
