@@ -60,8 +60,11 @@ class forward_lock_guard
     using node_ptr_t = std::shared_ptr<node_t>;
 
 public:
-    forward_lock_guard(lock_type type, node_ptr_t node)
-        : type_(type), mutex_(&node->get_mutex()), prev_mutex_(nullptr)
+    forward_lock_guard(lock_type type, node_ptr_t node, bool do_not_unlock = false)
+        : type_(type)
+        , mutex_(&node->get_mutex())
+        , prev_mutex_(nullptr)
+        , do_not_unlock_(do_not_unlock)
     {
         // Lock mutex_
         if      (type_ == lock_type::SHARED)    mutex_->lock_shared();
@@ -70,6 +73,9 @@ public:
 
     ~forward_lock_guard()
     {
+        if (do_not_unlock_)
+            return;
+
         if (mutex_ != nullptr)
         {
             // Unlock mutex_
@@ -127,6 +133,7 @@ private:
     lock_type type_;
     std::shared_mutex* mutex_;
     std::shared_mutex* prev_mutex_;
+    bool do_not_unlock_;
 };
 
 template <typename K, typename V>
@@ -259,14 +266,20 @@ public:
         prev_node->set_next(new_node);
     }
 
-    template <typename T>
-    void insert_value(node_ptr_t node, const K&, const T& value)
+    node_ptr_t create_node(const K& key)
     {
-        if (node == nullptr)
-            return;
+        unsigned long index = hash(key);
 
-        forward_lock_guard<K, V> lock(lock_type::EXCLUSIVE, node);
-        node->get_value()->emplace_back(value);
+        node_ptr_t sentinel = data_.at(index);
+        forward_lock_guard<K, V> lock_sentinel(lock_type::EXCLUSIVE, sentinel);
+
+        // Create new node
+        const auto new_node = std::make_shared<node_t>(key, std::make_shared<V>());
+        forward_lock_guard<K, V> lock(lock_type::EXCLUSIVE, new_node, true);
+        new_node->set_next(sentinel->get_next());
+        sentinel->set_next(new_node);
+
+        return new_node;
     }
 
     template <typename T>
