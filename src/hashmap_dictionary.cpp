@@ -39,15 +39,18 @@ result_t hashmap_dictionary::search(const char* word) const
 
 void hashmap_dictionary::insert(int document_id, gsl::span<const char*> text)
 {
-    auto node = m_dico[document_id];
-    if (node != nullptr)
+    if (m_dico[document_id] != nullptr)
         return;
 
+    auto node = m_dico.create_node(document_id);
     for (const char* word : text)
     {
-        m_dico.insert_value(node, document_id, word);
+        node->get_value()->emplace_back(word);
+
         m_rev_dico.insert_value(word, document_id);
     }
+
+    node->get_mutex().unlock();
  }
 
 void hashmap_dictionary::remove(int document_id)
