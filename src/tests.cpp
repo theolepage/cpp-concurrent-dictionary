@@ -12,7 +12,7 @@
 #include "utils/hashmap.hpp"
 
 using namespace std::string_literals;
-
+/*
 TEST(HashMap, Simple)
 {
     hashmap<int, std::string> map;
@@ -102,7 +102,7 @@ TEST(HashmapDictionary, AsyncConsistency)
 // TODO
 // Adapt/Create new tests tests with your new structures
 // naive_dictionary/async_naive_dictionary can be used as references
-
+*/
 using dic_t = std::vector<std::vector<const char*>>;
 
 // A basic add/remove/search test
@@ -156,6 +156,29 @@ TEST(TrieDictionary, AsyncConsistency)
     params.word_redoundancy = 0.3f;
     params.word_occupancy = 0.9f;
     params.n_queries = 100;
+    params.ratio_indel = 0.2;
+
+    Scenario scn(params);
+
+    Tree_Dictionary dic;
+    Tree_Async_Dictionary async_dic;
+    scn.prepare(dic);
+    scn.prepare(async_dic);
+    auto r1 = scn.execute(async_dic, 1);
+    auto r2 = scn.execute(dic);
+    ASSERT_EQ(r1, r2);
+}
+
+// A very long scenario, check that the async dictionary as the
+// same output as the blocking one
+TEST(TrieDictionary, AsyncConsistencyFat)
+{
+    Scenario::param_t params;
+    params.word_count = 10000;
+    params.doc_count = 1000;
+    params.word_redoundancy = 0.3f;
+    params.word_occupancy = 0.9f;
+    params.n_queries = 100000;
     params.ratio_indel = 0.2;
 
     Scenario scn(params);

@@ -56,6 +56,9 @@ void Tree_Dictionary::_add_word(const char* word, int book,
 void Tree_Dictionary::_add_word(const char* word, const int book)
 {
     Node* cur = &root_;
+    // Here data race on array but on the array itself, since we are accessing the cells in a thread-safe manner
+    // There is a data race on the array but not on the cell, the programm is thus working
+
     while (*word != '\0')
     {
         if ((*cur)[*word] == nullptr)
@@ -97,33 +100,7 @@ result_t Tree_Dictionary::search(const char* word) const
     _search_word(word, r);
     return r;
 }
-/*
-class apply_add_word
-{
-private:
-    const gsl::span<const char*>& list_;
-    Tree_Dictionary* dico_;
-    const int document_id_;
-    Tree_Dictionary::delete_map::accessor& acc_;
 
-public:
-    void operator()(const tbb::blocked_range<size_t>& r) const
-    {
-        for (size_t i = r.begin(); i != r.end(); ++i)
-        {
-            dico_->_add_word(list_[i], document_id_, acc_->second);
-        }
-    }
-
-    apply_add_word(const gsl::span<const char*>& list,
-                    Tree_Dictionary* dico,
-                    const int document_id,
-                    Tree_Dictionary::delete_map::accessor& acc) :
-                    list_(list), dico_(dico), document_id_(document_id),
-acc_(acc)
-                    {}
-};
-*/
 void Tree_Dictionary::insert(int document_id, gsl::span<const char*> text)
 {
     // TODO change it to use their concurrent hashmap
@@ -145,8 +122,6 @@ void Tree_Dictionary::insert(int document_id, gsl::span<const char*> text)
             _add_word(word, document_id, a->second);
         }
     }
-    // parallel_for(tbb::blocked_range<size_t>(0,text.size()),
-    //    apply_add_word(text, this, document_id, a));
 }
 
 void Tree_Dictionary::_remove(int document_id)

@@ -1,13 +1,12 @@
 #include "tree_async_dictionary.hpp"
-
 #include <iostream>
 
 Tree_Async_Dictionary::Tree_Async_Dictionary()
-    : thread_pool_(100)
+    //: thread_pool_(8)
 {}
 
 Tree_Async_Dictionary::Tree_Async_Dictionary(const dictionary_t& d)
-    : thread_pool_(100)
+    //: thread_pool_(8)
 {
     m_dic.init(d);
 }
@@ -49,11 +48,10 @@ std::future<void> Tree_Async_Dictionary::remove(int doc_id)
     auto p = new std::promise<void>;
     auto futur = p->get_future();
     thread_pool_.push([this, doc_id, p]()
-                      {
-    this->m_dic.remove(doc_id);
-    p->set_value();
-    delete p;
-  }
-);
+    {
+        this->m_dic.remove(doc_id);
+        p->set_value();
+        delete p;
+    });
     return futur;
 }
