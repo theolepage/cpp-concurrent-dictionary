@@ -1,11 +1,11 @@
 #include "hashmap_async_dictionary.hpp"
 #include <iostream>
 
-hashmap_async_dictionary::hashmap_async_dictionary() : thread_pool_(100)
+hashmap_async_dictionary::hashmap_async_dictionary() //: thread_pool_(100)
 {
 }
 
-hashmap_async_dictionary::hashmap_async_dictionary(const dictionary_t& d) : thread_pool_(100)
+hashmap_async_dictionary::hashmap_async_dictionary(const dictionary_t& d) //: thread_pool_(100)
 {
   m_dic.init(d);
 }

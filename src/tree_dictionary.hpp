@@ -44,7 +44,7 @@ class Node
 {
 public:
     using delete_map =
-        tbb::concurrent_hash_map<int, std::vector<Leaf::book_set*>>;
+        tbb::concurrent_hash_map<int, std::vector<std::shared_ptr<Leaf>>>;
 
     Node() = default;
 
@@ -65,7 +65,7 @@ public:
     {
         if (!is_leaf)
         {
-            leaf_ = std::make_unique<Leaf>();
+            leaf_ = std::make_shared<Leaf>();
             is_leaf = true;
         }
 
@@ -121,11 +121,11 @@ public:
             {
                 delete_map::accessor a;
                 if (book_leafs.find(a, book))
-                    a->second.emplace_back(&(leaf_->books));
+                    a->second.emplace_back(leaf_);
                 else
                 {
                     book_leafs.insert(std::make_pair(
-                        book, std::vector<Leaf::book_set*>{&(leaf_->books)}));
+                        book, std::vector<std::shared_ptr<Leaf>>{leaf_}));
                 }
             }
         }
@@ -137,15 +137,15 @@ public:
         }
     }
 
-    Leaf* get_leaf()
+    std::shared_ptr<Leaf> get_leaf()
     {
-        return leaf_.get();
+        return leaf_;
     }
 
     // TODO use a getter
     mutable std::mutex m; // To lock when adding a new word
 private:
-    std::unique_ptr<Leaf> leaf_; // Pointer to leaf if leaf
+    std::shared_ptr<Leaf> leaf_; // Pointer to leaf if leaf
     char letter_; // Letter of node
     std::unique_ptr<Node>
         children_[NB_LETTERS]; // Array size 26 of pointer to child nodes
@@ -156,7 +156,7 @@ class Tree_Dictionary : public IReversedDictionary
 {
 public:
     using delete_map =
-        tbb::concurrent_hash_map<int, std::vector<Leaf::book_set*>>;
+        tbb::concurrent_hash_map<int, std::vector<std::shared_ptr<Leaf>>>;
     Tree_Dictionary();
     Tree_Dictionary(const dictionary_t& init);
 
@@ -172,7 +172,7 @@ public:
     virtual void remove(int document_id) final;
     void _add_word(const char* word, int book);
     void _add_word(const char* word, int book,
-                   std::vector<Leaf::book_set*>& vect);
+                   std::vector<std::shared_ptr<Leaf>>& vect);
 
     // TODO private
     Node root_;

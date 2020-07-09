@@ -31,7 +31,7 @@ void Tree_Dictionary::_init(const dictionary_t& d)
 }
 
 void Tree_Dictionary::_add_word(const char* word, int book,
-                                std::vector<Leaf::book_set*>& vect)
+                                std::vector<std::shared_ptr<Leaf>>& vect)
 {
     Node* cur = &root_;
     while (*word != '\0')
@@ -50,7 +50,7 @@ void Tree_Dictionary::_add_word(const char* word, int book,
     }
 
     cur->add_book(book);
-    vect.emplace_back(&(cur->get_leaf()->books));
+    vect.emplace_back(cur->get_leaf());
 }
 
 void Tree_Dictionary::_add_word(const char* word, const int book)
@@ -111,8 +111,9 @@ void Tree_Dictionary::insert(int document_id, gsl::span<const char*> text)
     delete_map::accessor a;
     if (!book_leafs_.find(a, document_id))
     {
+        // Add new entry to hahsmap and fill it below (_add_word)
         book_leafs_.insert(
-            a, std::make_pair(document_id, std::vector<Leaf::book_set*>{}));
+            a, std::make_pair(document_id, std::vector<std::shared_ptr<Leaf>>{}));
     }
 
     if (a->second.empty())
@@ -129,16 +130,14 @@ void Tree_Dictionary::_remove(int document_id)
     delete_map::accessor a;
     if (book_leafs_.find(a, document_id))
     {
-        if (a->second.empty() || a->second[0] == nullptr)
-            return;
-
+        // For each entry in out vector, delete book instance in the leaf vector
         for (size_t i = 0; i < a->second.size(); ++i)
         {
-            a->second[i]->erase(std::remove(a->second[i]->begin(),
-                                            a->second[i]->end(), document_id),
-                                a->second[i]->end());
+            a->second[i]->books.erase(std::remove(a->second[i]->books.begin(),
+                                            a->second[i]->books.end(), document_id),
+                                a->second[i]->books.end());
         }
-
+        // Delete entry from the hashmap
         book_leafs_.erase(a);
     }
 }
