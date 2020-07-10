@@ -14,6 +14,12 @@ public:
         pools_.wait();
     }
 
+    ~Thread_Pool()
+    {
+        for (size_t i = 0; i < pools_.size(); i++)
+            pools_[i].wait();
+    }
+
     template <typename T>
     void push(T&& t)
     {

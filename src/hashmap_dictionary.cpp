@@ -16,11 +16,10 @@ void hashmap_dictionary::_init(const dictionary_t& d)
 {
     for (auto&& [id, text] : d)
     {
-        auto& document = m_dico[id];
         for (auto&& word : text)
         {
-            document.insert(word);
-            m_rev_dico[word].insert(id);
+            m_dico.insert_value(id, word);
+            m_rev_dico.insert_value(word, id);
         }
     }
 }
@@ -29,33 +28,38 @@ result_t hashmap_dictionary::search(const char* word) const
 {
     result_t r;
 
-    const auto itemptr = m_rev_dico.find(word);
-    if (itemptr == nullptr)
+    const auto dicos = m_rev_dico.find(word);
+    if (!dicos.has_value())
         return r;
 
-    auto& item = itemptr->get_value();
-    r.m_count = std::min(int(item.size()), MAX_RESULT_COUNT);
-    std::copy_n(item.begin(), r.m_count, r.m_matched);
+    r.m_count = std::min(int(dicos.value().size()), MAX_RESULT_COUNT);
+    std::copy_n(dicos.value().begin(), r.m_count, r.m_matched);
     return r;
 }
 
 void hashmap_dictionary::insert(int document_id, gsl::span<const char*> text)
 {
-    auto& document = m_dico[document_id];
-    for (auto&& word : text)
+    if (m_dico[document_id] != nullptr)
+        return;
+
+    auto node = m_dico.create_node(document_id);
+    for (const char* word : text)
     {
-        document.insert(word);
-        m_rev_dico[word].insert(document_id);
+        node->get_value()->emplace_back(word);
+
+        m_rev_dico.insert_value(word, document_id);
     }
-}
+
+    node->get_mutex().unlock();
+ }
 
 void hashmap_dictionary::remove(int document_id)
 {
-    const auto entry = m_dico.find(document_id);
-    if (entry == nullptr)
+    const auto words = m_dico.find(document_id);
+    if (!words.has_value())
         return;
 
-    for (const auto& w : entry->get_value())
-        m_rev_dico[w].erase(document_id);
+    for (const auto& w : words.value())
+        m_rev_dico.remove_value(w, document_id);
     m_dico.remove(document_id);
 }
