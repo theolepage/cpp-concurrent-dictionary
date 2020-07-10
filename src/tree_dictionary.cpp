@@ -103,22 +103,17 @@ result_t Tree_Dictionary::search(const char* word) const
 
 void Tree_Dictionary::insert(int document_id, gsl::span<const char*> text)
 {
-    // TODO change it to use their concurrent hashmap
-    auto s = std::unordered_set<const char*>();
-    for (const char* word : text)
-        s.emplace(word);
-
     delete_map::accessor a;
     if (!book_leafs_.find(a, document_id))
     {
+        auto s = std::unordered_set<const char*>();
+        for (const char* word : text)
+            s.emplace(word);
+
         // Add new entry to hahsmap and fill it below (_add_word)
         book_leafs_.insert(
             a, std::make_pair(document_id, std::vector<std::shared_ptr<Leaf>>{}));
-    }
 
-    // If doc already added, the vector is not empty
-    if (a->second.empty())
-    {
         for (const char* word : s)
         {
             _add_word(word, document_id, a->second);
