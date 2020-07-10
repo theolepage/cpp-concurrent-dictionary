@@ -116,6 +116,7 @@ void Tree_Dictionary::insert(int document_id, gsl::span<const char*> text)
             a, std::make_pair(document_id, std::vector<std::shared_ptr<Leaf>>{}));
     }
 
+    // If doc already added, the vector is not empty
     if (a->second.empty())
     {
         for (const char* word : s)
@@ -133,9 +134,7 @@ void Tree_Dictionary::_remove(int document_id)
         // For each entry in out vector, delete book instance in the leaf vector
         for (size_t i = 0; i < a->second.size(); ++i)
         {
-            a->second[i]->books.erase(std::remove(a->second[i]->books.begin(),
-                                            a->second[i]->books.end(), document_id),
-                                a->second[i]->books.end());
+            a->second[i]->erase(document_id);
         }
         // Delete entry from the hashmap
         book_leafs_.erase(a);

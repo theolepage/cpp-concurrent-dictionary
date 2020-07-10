@@ -17,8 +17,6 @@ BMScenario/Naive_Async/real_time         1210 ms         1210 ms            1 it
 BMScenario/Tree_Async/real_time           845 ms          782 ms            1 items_per_second=1.18369M/s
 //
 
-// Add deletion, no async cause not working yet
-
         params.word_count       = 10000;
         params.doc_count        = 100;
         params.word_redoundancy = 0.3f;
