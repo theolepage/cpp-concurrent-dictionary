@@ -3,6 +3,7 @@
 #include <thread>
 
 #include "naive_dictionary.hpp"
+#include "naive_async_dictionary.hpp"
 #include "tree_async_dictionary.hpp"
 #include "tree_dictionary.hpp"
 #include <unordered_set>
@@ -76,33 +77,9 @@ TEST(HashmapDictionary, Basic)
     }
 }
 
-// A long scenario, check that the async dictionary as the
-// same output as the blocking one
-TEST(HashmapDictionary, AsyncConsistency)
-{
-    Scenario::param_t params;
-    params.word_count = 1000;
-    params.doc_count = 30;
-    params.word_redoundancy = 0.3f;
-    params.word_occupancy = 0.9f;
-    params.n_queries = 100;
-    params.ratio_indel = 0.2;
-
-    Scenario scn(params);
-
-    hashmap_dictionary dic;
-    hashmap_async_dictionary async_dic;
-    scn.prepare(dic);
-    scn.prepare(async_dic);
-    auto r1 = scn.execute(async_dic, 1);
-    auto r2 = scn.execute(dic);
-    ASSERT_EQ(r1, r2);
-}
-
 // TODO
 // Adapt/Create new tests tests with your new structures
 // naive_dictionary/async_naive_dictionary can be used as references
-*/
 using dic_t = std::vector<std::vector<const char*>>;
 
 // A basic add/remove/search test
