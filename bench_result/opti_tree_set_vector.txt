@@ -1,0 +1,30 @@
+Opti tree set vector
+[26] array for trie
+tbb hashmap for deletion
+vector for book storing
+
+        params.word_count       = 10000;
+        params.doc_count        = 100;
+        params.word_redoundancy = 0.3f;
+        params.word_occupancy   = 0.9f;
+        params.n_queries        = 1000000;
+        params.ratio_indel      = 0.0;
+
+BMScenario/Naive_NoAsync/real_time          513 ms          513 ms            1 items_per_second=1.95002M/s
+BMScenario/Tree_NoAsync/real_time           209 ms          209 ms            3 items_per_second=4.78397M/s
+BMScenario/Naive_Async/real_time           1002 ms         1002 ms            1 items_per_second=998.451k/s
+BMScenario/Tree_Async/real_time             655 ms          627 ms            1 items_per_second=1.52783M/s
+
+//
+
+// Add deletion, no async cause not working yet
+
+        params.word_count       = 10000;
+        params.doc_count        = 100;
+        params.word_redoundancy = 0.3f;
+        params.word_occupancy   = 0.9f;
+        params.n_queries        = 1000000;
+        params.ratio_indel      = 0.2;
+
+BMScenario/Naive_NoAsync/real_time         2724 ms         2724 ms            1 items_per_second=367.141k/s
+BMScenario/Tree_NoAsync/real_time          1787 ms         1787 ms            1 items_per_second=559.507k/s

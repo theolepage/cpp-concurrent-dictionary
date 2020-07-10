@@ -1,30 +1,32 @@
 #pragma once
 
+#include <algorithm>
+#include <memory>
+#include <shared_mutex>
+#include <tbb/concurrent_hash_map.h>
+#include <unordered_set>
 #include <utility>
 #include <vector>
-#include <shared_mutex>
-#include <memory>
-#include <tbb/concurrent_hash_map.h>
 
 #include "IDictionary.hpp"
-#include <unordered_set>
 
 static constexpr auto NB_LETTERS = 26;
 
 struct Leaf
 {
-    using book_set = std::unordered_set<int>;
+    // TODO with vector no risk of duplicate ?
+    using book_set = std::vector<int>;
 
     void insert(int book)
     {
         std::unique_lock l(m);
-        books.insert(book);
+        books.emplace_back(book);
     }
 
     void erase(int book)
     {
         std::unique_lock l(m);
-        books.erase(book);
+        books.erase(std::remove(books.begin(), books.end(), book), books.end());
     }
 
     void read_books(result_t& r)
@@ -41,8 +43,8 @@ struct Leaf
 class Node
 {
 public:
-    using book_set = std::unordered_set<int>;
-    using delete_map = tbb::concurrent_hash_map<int, std::vector<Leaf::book_set*>>;
+    using delete_map =
+        tbb::concurrent_hash_map<int, std::vector<std::shared_ptr<Leaf>>>;
 
     Node() = default;
 
@@ -63,7 +65,7 @@ public:
     {
         if (!is_leaf)
         {
-            leaf_ = std::make_unique<Leaf>();
+            leaf_ = std::make_shared<Leaf>();
             is_leaf = true;
         }
 
@@ -100,8 +102,7 @@ public:
         if (is_leaf)
         {
             leaf_->read_books(r);
-        }
-        else
+        } else
         {
             r.m_count = 0;
         }
@@ -120,12 +121,11 @@ public:
             {
                 delete_map::accessor a;
                 if (book_leafs.find(a, book))
-                    a->second.emplace_back(&(leaf_->books));
+                    a->second.emplace_back(leaf_);
                 else
                 {
-                    book_leafs.insert(
-                        std::make_pair(
-                            book, std::vector<Leaf::book_set*>{&(leaf_->books)}));
+                    book_leafs.insert(std::make_pair(
+                        book, std::vector<std::shared_ptr<Leaf>>{leaf_}));
                 }
             }
         }
@@ -137,25 +137,26 @@ public:
         }
     }
 
-    Leaf* get_leaf()
+    std::shared_ptr<Leaf> get_leaf()
     {
-        return leaf_.get();
+        return leaf_;
     }
 
     // TODO use a getter
-    mutable std::mutex m;                           // To lock when adding a new word
+    mutable std::mutex m; // To lock when adding a new word
 private:
-
-    std::unique_ptr<Leaf> leaf_;                    // Pointer to leaf if leaf
-    char letter_;                                   // Letter of node
-    std::unique_ptr<Node> children_[NB_LETTERS];    // Array size 26 of pointer to child nodes
-    bool is_leaf = false;                           // To know if leaf
+    std::shared_ptr<Leaf> leaf_; // Pointer to leaf if leaf
+    char letter_; // Letter of node
+    std::unique_ptr<Node>
+        children_[NB_LETTERS]; // Array size 26 of pointer to child nodes
+    bool is_leaf = false; // To know if leaf
 };
 
 class Tree_Dictionary : public IReversedDictionary
 {
 public:
-    using delete_map = tbb::concurrent_hash_map<int, std::vector<Leaf::book_set*>>;
+    using delete_map =
+        tbb::concurrent_hash_map<int, std::vector<std::shared_ptr<Leaf>>>;
     Tree_Dictionary();
     Tree_Dictionary(const dictionary_t& init);
 
@@ -170,7 +171,8 @@ public:
     virtual void insert(int document_id, gsl::span<const char*> text) final;
     virtual void remove(int document_id) final;
     void _add_word(const char* word, int book);
-    void _add_word(const char* word, int book, std::vector<Leaf::book_set*>& vect);
+    void _add_word(const char* word, int book,
+                   std::vector<std::shared_ptr<Leaf>>& vect);
 
     // TODO private
     Node root_;
@@ -179,7 +181,6 @@ public:
 private:
     void _init(const dictionary_t& d);
     void _search_word(const char* word, result_t& r) const;
-    //void _add_word(const char* word, int book);
+    // void _add_word(const char* word, int book);
     void _remove(int document_id);
-
 };
