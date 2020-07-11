@@ -3,16 +3,16 @@
 #include <algorithm>
 #include <unordered_set>
 
-#include "IDictionary.hpp"
+#include "../IDictionary.hpp"
 
 Tree_Dictionary::Tree_Dictionary()
     : root_(Node('\0'))
-    , book_leafs_(Tree_Dictionary::delete_map())
+    , book_Sub_nodes_(Tree_Dictionary::delete_map())
 {}
 
 Tree_Dictionary::Tree_Dictionary(const dictionary_t& d)
     : root_(Node('\0'))
-    , book_leafs_(Tree_Dictionary::delete_map())
+    , book_Sub_nodes_(Tree_Dictionary::delete_map())
 {
     this->_init(d);
 }
@@ -27,11 +27,11 @@ void Tree_Dictionary::_init(const dictionary_t& d)
     for (const auto& [book, words] : d)
         for (const auto& word : words)
             _add_word(word, book);
-    root_._init_leafs(book_leafs_);
+    root_._init_Sub_nodes(book_Sub_nodes_);
 }
 
 void Tree_Dictionary::_add_word(const char* word, int book,
-                                std::vector<std::shared_ptr<Leaf>>& vect)
+                                std::vector<std::shared_ptr<Sub_node>>& vect)
 {
     Node* cur = &root_;
     while (*word != '\0')
@@ -50,7 +50,7 @@ void Tree_Dictionary::_add_word(const char* word, int book,
     }
 
     cur->add_book(book);
-    vect.emplace_back(cur->get_leaf());
+    vect.emplace_back(cur->get_Sub_node());
 }
 
 void Tree_Dictionary::_add_word(const char* word, const int book)
@@ -104,15 +104,15 @@ result_t Tree_Dictionary::search(const char* word) const
 void Tree_Dictionary::insert(int document_id, gsl::span<const char*> text)
 {
     delete_map::accessor a;
-    if (!book_leafs_.find(a, document_id))
+    if (!book_Sub_nodes_.find(a, document_id))
     {
         auto s = std::unordered_set<const char*>();
         for (const char* word : text)
             s.emplace(word);
 
         // Add new entry to hahsmap and fill it below (_add_word)
-        book_leafs_.insert(
-            a, std::make_pair(document_id, std::vector<std::shared_ptr<Leaf>>{}));
+        book_Sub_nodes_.insert(
+            a, std::make_pair(document_id, std::vector<std::shared_ptr<Sub_node>>{}));
 
         for (const char* word : s)
         {
@@ -124,15 +124,15 @@ void Tree_Dictionary::insert(int document_id, gsl::span<const char*> text)
 void Tree_Dictionary::_remove(int document_id)
 {
     delete_map::accessor a;
-    if (book_leafs_.find(a, document_id))
+    if (book_Sub_nodes_.find(a, document_id))
     {
-        // For each entry in out vector, delete book instance in the leaf vector
+        // For each entry in out vector, delete book instance in the Sub_node vector
         for (size_t i = 0; i < a->second.size(); ++i)
         {
             a->second[i]->erase(document_id);
         }
         // Delete entry from the hashmap
-        book_leafs_.erase(a);
+        book_Sub_nodes_.erase(a);
     }
 }
 

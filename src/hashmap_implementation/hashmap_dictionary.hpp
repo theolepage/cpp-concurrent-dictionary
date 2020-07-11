@@ -1,10 +1,10 @@
 #pragma once
-#include "IDictionary.hpp"
+#include "../IDictionary.hpp"
 #include <unordered_set>
 #include <mutex>
 #include <vector>
 
-#include "utils/hashmap.hpp"
+#include "hashmap.hpp"
 
 class hashmap_dictionary : public IReversedDictionary
 {

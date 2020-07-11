@@ -2,17 +2,25 @@
 #include <gtest/gtest.h>
 #include <thread>
 
-#include "naive_dictionary.hpp"
-#include "naive_async_dictionary.hpp"
-#include "tree_async_dictionary.hpp"
-#include "tree_dictionary.hpp"
+#include "naive_implementation/naive_dictionary.hpp"
+#include "naive_implementation/naive_async_dictionary.hpp"
+#include "trie_implementation/tree_dictionary.hpp"
 #include <unordered_set>
 #include "tools.hpp"
-#include "hashmap_dictionary.hpp"
-#include "hashmap_async_dictionary.hpp"
-#include "utils/hashmap.hpp"
+#include "hashmap_implementation/hashmap_dictionary.hpp"
+#include "hashmap_implementation/hashmap.hpp"
+#include "async_implementation/async_dictionary.hpp"
+#include "fusion_implementation/fusion_dictionary.hpp"
 
 using namespace std::string_literals;
+// TODO
+// Adapt/Create new tests tests with your new structures
+// naive_dictionary/async_naive_dictionary can be used as references
+using dic_t = std::vector<std::vector<const char*>>;
+
+/* --- SIMPLE --- */
+
+// A basic add/remove/search test
 
 TEST(HashMap, Simple)
 {
@@ -22,21 +30,14 @@ TEST(HashMap, Simple)
   map.insert_value(3, "lukas");
   map.insert_value(4, "theo");
 
-  auto tmp = map.find(3);
+  auto tmp = map.find_value_copy(3);
   ASSERT_EQ("lukas", tmp.value().at(0));
 
   map.remove(2);
-  tmp = map.find(2);
+  tmp = map.find_value_copy(2);
   ASSERT_EQ(false, tmp.has_value());
 }
 
-// TODO
-// Adapt/Create new tests tests with your new structures
-// naive_dictionary/async_naive_dictionary can be used as references
-
-using dic_t = std::vector<std::vector<const char*>>;
-
-// A basic add/remove/search test
 TEST(HashmapDictionary, Basic)
 {
     dic_t d = {{"massue", "lamasse", "massive"}, //
@@ -77,12 +78,6 @@ TEST(HashmapDictionary, Basic)
     }
 }
 
-// TODO
-// Adapt/Create new tests tests with your new structures
-// naive_dictionary/async_naive_dictionary can be used as references
-using dic_t = std::vector<std::vector<const char*>>;
-
-// A basic add/remove/search test
 TEST(TrieDictionary, Basic)
 {
     dic_t d = {{"massue", "lamasse", "massive"}, //
@@ -123,50 +118,44 @@ TEST(TrieDictionary, Basic)
     }
 }
 
-// A long scenario, check that the async dictionary as the
-// same output as the blocking one
-TEST(TrieDictionary, AsyncConsistency)
+TEST(FusionDictionary, Basic)
 {
-    Scenario::param_t params;
-    params.word_count = 1000;
-    params.doc_count = 30;
-    params.word_redoundancy = 0.3f;
-    params.word_occupancy = 0.9f;
-    params.n_queries = 100;
-    params.ratio_indel = 0.2;
+    dic_t d = {{"massue", "lamasse", "massive"}, //
+               {"massue", "limace"}, //
+               {"limace", "lamassue"}};
 
-    Scenario scn(params);
+    Fusion_Dictionary dic = dictionary_t{
+        {0, gsl::make_span(d[0])},
+        {1, gsl::make_span(d[1])},
+        {2, gsl::make_span(d[2])},
+    };
 
-    Tree_Dictionary dic;
-    Tree_Async_Dictionary async_dic;
-    scn.prepare(dic);
-    scn.prepare(async_dic);
-    auto r1 = scn.execute(async_dic, 1);
-    auto r2 = scn.execute(dic);
-    ASSERT_EQ(r1, r2);
-}
+    {
+        auto res = dic.search("massue");
+        ASSERT_EQ(res.count(), 2);
+        ASSERT_TRUE(res.item(0).id() == 0 || res.item(0).id() == 1);
+        ASSERT_TRUE(res.item(0).id() == 1 || res.item(0).id() == 0);
+    }
 
-// A very long scenario, check that the async dictionary as the
-// same output as the blocking one
-TEST(TrieDictionary, AsyncConsistencyFat)
-{
-    Scenario::param_t params;
-    params.word_count = 10000;
-    params.doc_count = 1000;
-    params.word_redoundancy = 0.3f;
-    params.word_occupancy = 0.9f;
-    params.n_queries = 100000;
-    params.ratio_indel = 0.2;
+    {
+        auto res = dic.search("masseur");
+        ASSERT_EQ(res.count(), 0);
+    }
 
-    Scenario scn(params);
+    // Insertion
+    {
+        const char* text[] = {"masseur", "massue"};
+        dic.insert(42, text);
+        ASSERT_EQ(dic.search("massue").count(), 3);
+        ASSERT_EQ(dic.search("masseur").count(), 1);
+        ASSERT_EQ(dic.search("masseur").item(0).id(), 42);
+    }
 
-    Tree_Dictionary dic;
-    Tree_Async_Dictionary async_dic;
-    scn.prepare(dic);
-    scn.prepare(async_dic);
-    auto r1 = scn.execute(async_dic, 1);
-    auto r2 = scn.execute(dic);
-    ASSERT_EQ(r1, r2);
+    {
+        dic.remove(1);
+        ASSERT_EQ(dic.search("limace").count(), 1);
+        ASSERT_EQ(dic.search("limace").item(0).id(), 2);
+    }
 }
 
 TEST(Dictionary, Basic)
@@ -227,8 +216,12 @@ TEST(Dictionary, SimpleScenario)
     scn.execute(dic);
 }
 
+
+/* --- ASYNC CONSISTENCY --- */
+
 // A long scenario, check that the async dictionary as the
 // same output as the blocking one
+
 TEST(Dictionary, AsyncConsistency)
 {
     Scenario::param_t params;
@@ -250,6 +243,48 @@ TEST(Dictionary, AsyncConsistency)
     ASSERT_EQ(r1, r2);
 }
 
+TEST(TrieDictionary, AsyncConsistency)
+{
+    Scenario::param_t params;
+    params.word_count = 1000;
+    params.doc_count = 30;
+    params.word_redoundancy = 0.3f;
+    params.word_occupancy = 0.9f;
+    params.n_queries = 10000;
+    params.ratio_indel = 0.2;
+
+    Scenario scn(params);
+
+    Tree_Dictionary dic;
+    Async_Dictionary<Tree_Dictionary> async_dic;
+    scn.prepare(dic);
+    scn.prepare(async_dic);
+    auto r1 = scn.execute(async_dic, 1);
+    auto r2 = scn.execute(dic);
+    ASSERT_EQ(r1, r2);
+}
+
+TEST(FusionDictionary, AsyncConsistency)
+{
+    Scenario::param_t params;
+    params.word_count = 1000;
+    params.doc_count = 30;
+    params.word_redoundancy = 0.3f;
+    params.word_occupancy = 0.9f;
+    params.n_queries = 10000;
+    params.ratio_indel = 0.2;
+
+    Scenario scn(params);
+
+    Fusion_Dictionary dic;
+    Async_Dictionary<Fusion_Dictionary> async_dic;
+    scn.prepare(dic);
+    scn.prepare(async_dic);
+    auto r1 = scn.execute(async_dic, 1);
+    auto r2 = scn.execute(dic);
+    ASSERT_EQ(r1, r2);
+}
+
 TEST(HashmapDictionary, AsyncConsistency)
 {
   Scenario::param_t params;
@@ -257,13 +292,13 @@ TEST(HashmapDictionary, AsyncConsistency)
   params.doc_count = 1000;
   params.word_redoundancy = 0.3f;
   params.word_occupancy = 0.9f;
-  params.n_queries = 100000;
+  params.n_queries = 10000;
   params.ratio_indel = 0.2;
 
   Scenario scn(params);
 
   hashmap_dictionary dic;
-  hashmap_async_dictionary async_dic;
+  Async_Dictionary<hashmap_dictionary> async_dic;
   scn.prepare(dic);
   scn.prepare(async_dic);
   auto r1 = scn.execute(async_dic, 1);

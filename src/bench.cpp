@@ -1,13 +1,13 @@
 #include <benchmark/benchmark.h>
 #include <functional>
 
-#include "hashmap_async_dictionary.hpp"
-#include "hashmap_dictionary.hpp"
-#include "naive_async_dictionary.hpp"
-#include "naive_dictionary.hpp"
+#include "hashmap_implementation/hashmap_dictionary.hpp"
+#include "naive_implementation/naive_async_dictionary.hpp"
+#include "naive_implementation/naive_dictionary.hpp"
 #include "tools.hpp"
-#include "tree_async_dictionary.hpp"
-#include "tree_dictionary.hpp"
+#include "trie_implementation/tree_dictionary.hpp"
+#include "async_implementation/async_dictionary.hpp"
+#include "fusion_implementation/fusion_dictionary.hpp"
 
 class BMScenario : public ::benchmark::Fixture
 {
@@ -56,6 +56,17 @@ BENCHMARK_DEFINE_F(BMScenario, Tree_NoAsync)(benchmark::State& st)
     st.SetItemsProcessed(st.iterations() * m_scenario->params().n_queries);
 }
 
+BENCHMARK_DEFINE_F(BMScenario, Fusion_NoAsync)(benchmark::State& st)
+{
+    Fusion_Dictionary dic;
+    m_scenario->prepare(dic);
+
+    for (auto _ : st)
+        m_scenario->execute(dic);
+
+    st.SetItemsProcessed(st.iterations() * m_scenario->params().n_queries);
+}
+
 BENCHMARK_DEFINE_F(BMScenario, Hashmap_NoAsync)(benchmark::State& st)
 {
     hashmap_dictionary dic;
@@ -80,7 +91,7 @@ BENCHMARK_DEFINE_F(BMScenario, Naive_Async)(benchmark::State& st)
 
 BENCHMARK_DEFINE_F(BMScenario, Hashmap_Async)(benchmark::State& st)
 {
-    hashmap_async_dictionary dic;
+    Async_Dictionary<hashmap_dictionary> dic;
     m_scenario->prepare(dic);
 
     for (auto _ : st)
@@ -91,7 +102,18 @@ BENCHMARK_DEFINE_F(BMScenario, Hashmap_Async)(benchmark::State& st)
 
 BENCHMARK_DEFINE_F(BMScenario, Tree_Async)(benchmark::State& st)
 {
-    Tree_Async_Dictionary dic;
+    Async_Dictionary<Tree_Dictionary> dic;
+    m_scenario->prepare(dic);
+
+    for (auto _ : st)
+        m_scenario->execute(dic);
+
+    st.SetItemsProcessed(st.iterations() * m_scenario->params().n_queries);
+}
+
+BENCHMARK_DEFINE_F(BMScenario, Fusion_Async)(benchmark::State& st)
+{
+    Async_Dictionary<Fusion_Dictionary> dic;
     m_scenario->prepare(dic);
 
     for (auto _ : st)
@@ -109,6 +131,9 @@ BENCHMARK_REGISTER_F(BMScenario, Naive_NoAsync)
 BENCHMARK_REGISTER_F(BMScenario, Tree_NoAsync)
     ->Unit(benchmark::kMillisecond) //
     ->UseRealTime();
+BENCHMARK_REGISTER_F(BMScenario, Fusion_NoAsync)
+    ->Unit(benchmark::kMillisecond) //
+    ->UseRealTime();
 
 BENCHMARK_REGISTER_F(BMScenario, Naive_Async)
     ->Unit(benchmark::kMillisecond) //
@@ -117,6 +142,9 @@ BENCHMARK_REGISTER_F(BMScenario, Naive_Async)
     ->Unit(benchmark::kMillisecond) //
     ->UseRealTime();
 BENCHMARK_REGISTER_F(BMScenario, Tree_Async)
+    ->Unit(benchmark::kMillisecond) //
+    ->UseRealTime();
+BENCHMARK_REGISTER_F(BMScenario, Fusion_Async)
     ->Unit(benchmark::kMillisecond) //
     ->UseRealTime();
 

@@ -13,7 +13,7 @@ find_package(TBB 2020.1 REQUIRED)
 
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall -fopenmp")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wall")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=thread")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -march=native")
 
@@ -28,26 +28,26 @@ add_library(dictionary
   src/tools.hpp
 
   # naive
-  src/naive_async_dictionary.cpp
-  src/naive_async_dictionary.hpp
-  src/naive_dictionary.cpp
-  src/naive_dictionary.hpp
+  src/naive_implementation/naive_async_dictionary.cpp
+  src/naive_implementation/naive_async_dictionary.hpp
+  src/naive_implementation/naive_dictionary.cpp
+  src/naive_implementation/naive_dictionary.hpp
 
   # tree
-  src/tree_dictionary.cpp
-  src/tree_dictionary.hpp
-  src/tree_async_dictionary.cpp
-  src/tree_async_dictionary.hpp
+  src/trie_implementation/tree_dictionary.cpp
+  src/trie_implementation/tree_dictionary.hpp
 
   # hashmap
-  src/hashmap_dictionary.cpp
-  src/hashmap_dictionary.hpp
-  src/hashmap_async_dictionary.cpp
-  src/hashmap_async_dictionary.hpp
-  src/utils/hashmap.hpp
+  src/hashmap_implementation/hashmap_dictionary.cpp
+  src/hashmap_implementation/hashmap_dictionary.hpp
+  src/hashmap_implementation/hashmap.hpp
+
+  # fusion
+  src/fusion_implementation/fusion_dictionary.cpp
+  src/fusion_implementation/fusion_dictionary.hpp
 
   ${CMAKE_CURRENT_BINARY_DIR}/src/resources.cpp
-  )
+)
 
 
 target_link_libraries(dictionary PUBLIC gsl-lite::gsl-lite spdlog::spdlog TBB::TBB gomp)

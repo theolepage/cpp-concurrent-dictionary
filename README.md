@@ -1,11 +1,3 @@
-# To-Do
-
-## Hashmap
-
-- [X] Check distribution in buckets (good distribution, 6-10 nodes per bucket)
-- [ ] Optimistic locking? (see slides 3)
-- [ ] Atomic linked list? (see slides 3)
-
 # Install
 
 1. Untar the archive
@@ -42,3 +34,10 @@ or
 cmake .. -DCMAKE_BUILD_TYPE=Release
 ```
 
+
+# Files
+
+ - hashmap_implementation contains the hashmap implementation
+ - trie_implementation contains the trie_implementation
+ - async_implementation contains the async implementation
+ - fusion_implementation contains the implementation our trie structure using our hashmap structure

@@ -28,7 +28,7 @@ result_t hashmap_dictionary::search(const char* word) const
 {
     result_t r;
 
-    const auto dicos = m_rev_dico.find(word);
+    const auto dicos = m_rev_dico.find_value_copy(word);
     if (!dicos.has_value())
         return r;
 
@@ -39,7 +39,7 @@ result_t hashmap_dictionary::search(const char* word) const
 
 void hashmap_dictionary::insert(int document_id, gsl::span<const char*> text)
 {
-    if (m_dico[document_id] != nullptr)
+    if (m_dico.find_node_unlocked(document_id) != nullptr)
         return;
 
     auto node = m_dico.create_node(document_id);
@@ -55,7 +55,7 @@ void hashmap_dictionary::insert(int document_id, gsl::span<const char*> text)
 
 void hashmap_dictionary::remove(int document_id)
 {
-    const auto words = m_dico.find(document_id);
+    const auto words = m_dico.find_value_copy(document_id);
     if (!words.has_value())
         return;
 

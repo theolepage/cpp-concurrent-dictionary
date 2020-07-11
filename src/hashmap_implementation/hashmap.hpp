@@ -91,6 +91,11 @@ public:
         }
     }
 
+    void set_do_not_unlock(bool val)
+    {
+        do_not_unlock_ = val;
+    }
+
     void forward(node_ptr_t next)
     {
         auto next_mutex = &next->get_mutex();
@@ -167,7 +172,7 @@ public:
         exit(0);
     }
 
-    std::optional<V> find(const K& key) const
+    std::optional<V> find_value_copy(const K& key) const
     {
         node_ptr_t node = data_.at(hash(key));
         forward_lock_guard<K, V> lock(lock_type::SHARED, node);
@@ -188,7 +193,29 @@ public:
         return *(node->get_value());
     }
 
-    node_ptr_t operator[](const K& key)
+    node_ptr_t find_node_locked(const K& key)
+    {
+        unsigned long index = hash(key);
+        node_ptr_t node = data_.at(index);
+        forward_lock_guard<K, V> lock(lock_type::EXCLUSIVE, node, true);
+
+        // Skip sentinel node
+        node = node->get_next();
+        if (node) lock.forward(node);
+
+        while (node != nullptr && node->get_key() != key)
+        {
+            node = node->get_next();
+            if (node) lock.forward(node);
+        }
+
+        if (node == nullptr)
+            lock.set_do_not_unlock(false);
+
+        return node;
+    }
+
+    node_ptr_t find_node_unlocked(const K& key)
     {
         unsigned long index = hash(key);
         node_ptr_t node = data_.at(index);

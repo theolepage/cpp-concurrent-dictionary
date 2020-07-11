@@ -1,5 +1,6 @@
 #pragma once
-#include "IDictionary.hpp"
+
+#include "../IDictionary.hpp"
 #include <unordered_map>
 #include <unordered_set>
 #include <mutex>
