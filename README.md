@@ -34,6 +34,13 @@ or
 cmake .. -DCMAKE_BUILD_TYPE=Release
 ```
 
+# Bench and testing
+
+After building:
+ - run ./tests to run our tests
+ - run ./bench to run our bench
+
+Our three implementations are tested are bench both in sync and async mode
 
 # Files
 
