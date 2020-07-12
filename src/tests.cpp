@@ -229,7 +229,7 @@ TEST(Dictionary, AsyncConsistency)
     params.doc_count = 30;
     params.word_redoundancy = 0.3f;
     params.word_occupancy = 0.9f;
-    params.n_queries = 100;
+    params.n_queries = 100000;
     params.ratio_indel = 0.2;
 
     Scenario scn(params);
@@ -288,8 +288,8 @@ TEST(FusionDictionary, AsyncConsistency)
 TEST(HashmapDictionary, AsyncConsistency)
 {
   Scenario::param_t params;
-  params.word_count = 10000;
-  params.doc_count = 1000;
+  params.word_count = 1000;
+  params.doc_count = 30;
   params.word_redoundancy = 0.3f;
   params.word_occupancy = 0.9f;
   params.n_queries = 10000;
