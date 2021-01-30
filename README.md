@@ -1,28 +1,28 @@
-# Install
+# cpp-concurrent-dictionary
 
-1. Untar the archive
+## Structure
 
-```
-tar xf prpa-src.tar.gz
+- `hashmap_implementation` contains the hashmap implementation
+- `trie_implementation` contains the trie implementation
+- `async_implementation` contains the async implementation
+- `fusion_implementation` contains the implementation of our trie structure using our hashmap
 
-```
+## Compilation
 
-2. Create your build directory
+1. Create your build directory.
 
 ```
 mkdir build && cd build
 ```
 
-3. Install project dependancies with the [conan](https://docs.conan.io/en/latest/introduction.html) package manager.
+2. Install project dependancies with the [conan](https://docs.conan.io/en/latest/introduction.html) package manager.
 
 ```
 conan profile update settings.compiler.libcxx=libstdc++11 default
 conan install .. --build missing
 ```
 
-(using a C++ package manager avoid version incompatibities)
-
-4. Build the project (in Debug or Release) with cmake
+3. Build the project (in Debug or Release) with CMake.
 
 ```
 cmake .. -DCMAKE_BUILD_TYPE=Debug
@@ -34,17 +34,7 @@ or
 cmake .. -DCMAKE_BUILD_TYPE=Release
 ```
 
-# Bench and testing
+## Usage
 
-After building:
- - run ./tests to run our tests
- - run ./bench to run our bench
-
-Our three implementations are tested are bench both in sync and async mode
-
-# Files
-
- - hashmap_implementation contains the hashmap implementation
- - trie_implementation contains the trie_implementation
- - async_implementation contains the async implementation
- - fusion_implementation contains the implementation our trie structure using our hashmap structure
+- Use `./tests` to run tests
+- Use `./bench` to run benchmarks

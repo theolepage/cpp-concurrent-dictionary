@@ -21,7 +21,6 @@
 core
 
 # Documentation
-*.pdf
 *.mp4
 
 # Build folders
