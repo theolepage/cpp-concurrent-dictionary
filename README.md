@@ -1,5 +1,7 @@
 # cpp-concurrent-dictionary
 
+Concurrent dictionary with one implementation based on concurrent hash maps and one based on concurrent tries.
+
 ## Structure
 
 - `hashmap_implementation` contains the hashmap implementation
